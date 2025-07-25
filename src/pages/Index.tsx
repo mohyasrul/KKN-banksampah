@@ -1,13 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Layout } from "@/components/Layout";
+import { Navigation } from "@/components/Navigation";
+import { Dashboard } from "@/components/Dashboard";
+import { RTManagement } from "@/components/RTManagement";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <Dashboard />;
+      case "rt-management":
+        return <RTManagement />;
+      case "waste-deposit":
+        return <div className="text-center py-12 text-muted-foreground">Fitur Input Setoran akan segera hadir</div>;
+      case "savings":
+        return <div className="text-center py-12 text-muted-foreground">Fitur Tabungan akan segera hadir</div>;
+      case "reports":
+        return <div className="text-center py-12 text-muted-foreground">Fitur Laporan akan segera hadir</div>;
+      case "settings":
+        return <div className="text-center py-12 text-muted-foreground">Fitur Pengaturan akan segera hadir</div>;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Layout>
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      {renderContent()}
+    </Layout>
   );
 };
 
