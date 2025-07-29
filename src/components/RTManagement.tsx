@@ -1,10 +1,23 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Users, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +36,7 @@ export const RTManagement = () => {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRT, setEditingRT] = useState<RT | null>(null);
-  
+
   // Initialize empty RT list - to be populated from IndexedDB
   const [rtList, setRTList] = useState<RT[]>([]);
 
@@ -32,17 +45,22 @@ export const RTManagement = () => {
     ketuaRT: "",
     jumlahKK: "",
     alamat: "",
-    kontak: ""
+    kontak: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.nomor || !formData.ketuaRT || !formData.jumlahKK || !formData.alamat) {
+
+    if (
+      !formData.nomor ||
+      !formData.ketuaRT ||
+      !formData.jumlahKK ||
+      !formData.alamat
+    ) {
       toast({
         title: "Error",
         description: "Mohon lengkapi semua field yang wajib diisi",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -55,25 +73,42 @@ export const RTManagement = () => {
       alamat: formData.alamat,
       kontak: formData.kontak,
       saldo: 0,
-      totalTransaksi: 0
+      totalTransaksi: 0,
     };
 
     if (editingRT) {
-      setRTList(rtList.map(rt => rt.id === editingRT.id ? { ...newRT, id: editingRT.id, saldo: editingRT.saldo, totalTransaksi: editingRT.totalTransaksi } : rt));
+      setRTList(
+        rtList.map((rt) =>
+          rt.id === editingRT.id
+            ? {
+                ...newRT,
+                id: editingRT.id,
+                saldo: editingRT.saldo,
+                totalTransaksi: editingRT.totalTransaksi,
+              }
+            : rt
+        )
+      );
       toast({
         title: "Berhasil",
-        description: "Data RT berhasil diperbarui"
+        description: "Data RT berhasil diperbarui",
       });
       setEditingRT(null);
     } else {
       setRTList([...rtList, newRT]);
       toast({
-        title: "Berhasil", 
-        description: "RT baru berhasil ditambahkan"
+        title: "Berhasil",
+        description: "RT baru berhasil ditambahkan",
       });
     }
 
-    setFormData({ nomor: "", ketuaRT: "", jumlahKK: "", alamat: "", kontak: "" });
+    setFormData({
+      nomor: "",
+      ketuaRT: "",
+      jumlahKK: "",
+      alamat: "",
+      kontak: "",
+    });
     setIsAddDialogOpen(false);
   };
 
@@ -84,16 +119,16 @@ export const RTManagement = () => {
       ketuaRT: rt.ketuaRT,
       jumlahKK: rt.jumlahKK.toString(),
       alamat: rt.alamat,
-      kontak: rt.kontak || ""
+      kontak: rt.kontak || "",
     });
     setIsAddDialogOpen(true);
   };
 
   const handleDelete = (id: string) => {
-    setRTList(rtList.filter(rt => rt.id !== id));
+    setRTList(rtList.filter((rt) => rt.id !== id));
     toast({
       title: "Berhasil",
-      description: "Data RT berhasil dihapus"
+      description: "Data RT berhasil dihapus",
     });
   };
 
@@ -102,9 +137,11 @@ export const RTManagement = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Manajemen RT</h2>
-          <p className="text-muted-foreground">Kelola data Rukun Tetangga dalam RW</p>
+          <p className="text-muted-foreground">
+            Kelola data Rukun Tetangga dalam RW
+          </p>
         </div>
-        
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -114,12 +151,16 @@ export const RTManagement = () => {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{editingRT ? "Edit Data RT" : "Tambah RT Baru"}</DialogTitle>
+              <DialogTitle>
+                {editingRT ? "Edit Data RT" : "Tambah RT Baru"}
+              </DialogTitle>
               <DialogDescription>
-                {editingRT ? "Perbarui informasi RT" : "Masukkan data RT yang akan didaftarkan"}
+                {editingRT
+                  ? "Perbarui informasi RT"
+                  : "Masukkan data RT yang akan didaftarkan"}
               </DialogDescription>
             </DialogHeader>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="nomor">Nomor RT *</Label>
@@ -127,20 +168,24 @@ export const RTManagement = () => {
                   id="nomor"
                   placeholder="RT 01"
                   value={formData.nomor}
-                  onChange={(e) => setFormData({ ...formData, nomor: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nomor: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="ketuaRT">Ketua RT *</Label>
                 <Input
                   id="ketuaRT"
                   placeholder="Nama Ketua RT"
                   value={formData.ketuaRT}
-                  onChange={(e) => setFormData({ ...formData, ketuaRT: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ketuaRT: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="jumlahKK">Jumlah KK *</Label>
                 <Input
@@ -148,41 +193,53 @@ export const RTManagement = () => {
                   type="number"
                   placeholder="45"
                   value={formData.jumlahKK}
-                  onChange={(e) => setFormData({ ...formData, jumlahKK: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, jumlahKK: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="alamat">Alamat *</Label>
                 <Input
                   id="alamat"
                   placeholder="Jl. Contoh No. 1-15"
                   value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, alamat: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="kontak">Kontak (Opsional)</Label>
                 <Input
                   id="kontak"
                   placeholder="081234567890"
                   value={formData.kontak}
-                  onChange={(e) => setFormData({ ...formData, kontak: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, kontak: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="flex space-x-2">
                 <Button type="submit" className="flex-1">
                   {editingRT ? "Perbarui" : "Tambah"}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setIsAddDialogOpen(false);
                     setEditingRT(null);
-                    setFormData({ nomor: "", ketuaRT: "", jumlahKK: "", alamat: "", kontak: "" });
+                    setFormData({
+                      nomor: "",
+                      ketuaRT: "",
+                      jumlahKK: "",
+                      alamat: "",
+                      kontak: "",
+                    });
                   }}
                 >
                   Batal
@@ -199,9 +256,12 @@ export const RTManagement = () => {
             <Card className="py-12">
               <CardContent className="text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Belum ada RT terdaftar</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  Belum ada RT terdaftar
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Mulai dengan menambahkan data RT pertama untuk Bank Sampah RW 10
+                  Mulai dengan menambahkan data RT pertama untuk Bank Sampah RW
+                  10
                 </p>
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -224,37 +284,48 @@ export const RTManagement = () => {
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>{rt.jumlahKK} KK</span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   <span>{rt.alamat}</span>
                 </div>
-                
+
                 {rt.kontak && (
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Phone className="h-4 w-4" />
                     <span>{rt.kontak}</span>
                   </div>
                 )}
-                
+
                 <div className="pt-2 border-t">
                   <p className="text-sm font-medium">
-                    Saldo Tabungan: <span className="text-success">Rp {rt.saldo.toLocaleString('id-ID')}</span>
+                    Saldo Tabungan:{" "}
+                    <span className="text-success">
+                      Rp {rt.saldo.toLocaleString("id-ID")}
+                    </span>
                   </p>
                 </div>
-                
+
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(rt)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(rt)}
+                  >
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(rt.id)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(rt.id)}
+                  >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Hapus
                   </Button>

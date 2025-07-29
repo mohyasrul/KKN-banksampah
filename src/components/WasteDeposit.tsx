@@ -1,11 +1,30 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CalendarDays, Scale, DollarSign, Calculator, CheckCircle } from "lucide-react";
+import {
+  Calendar,
+  CalendarDays,
+  Scale,
+  DollarSign,
+  Calculator,
+  CheckCircle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WasteType {
@@ -27,41 +46,52 @@ interface DepositTransaction {
 
 export const WasteDeposit = () => {
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     rt: "",
     wasteType: "",
     weight: "",
     customPrice: "",
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split("T")[0],
   });
 
-  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>([]);
+  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>(
+    []
+  );
 
   // Initialize empty RT list - to be populated from IndexedDB
   const rtList: string[] = [];
-  
+
   const wasteTypes: WasteType[] = [
     { id: "plastik", name: "Plastik", pricePerKg: 5000, unit: "kg" },
     { id: "kertas", name: "Kertas", pricePerKg: 3000, unit: "kg" },
     { id: "logam", name: "Logam", pricePerKg: 8000, unit: "kg" },
     { id: "kaca", name: "Kaca", pricePerKg: 2000, unit: "kg" },
-    { id: "kardus", name: "Kardus", pricePerKg: 2500, unit: "kg" }
+    { id: "kardus", name: "Kardus", pricePerKg: 2500, unit: "kg" },
   ];
 
-  const selectedWasteType = wasteTypes.find(type => type.id === formData.wasteType);
-  const currentPrice = formData.customPrice ? parseFloat(formData.customPrice) : selectedWasteType?.pricePerKg || 0;
+  const selectedWasteType = wasteTypes.find(
+    (type) => type.id === formData.wasteType
+  );
+  const currentPrice = formData.customPrice
+    ? parseFloat(formData.customPrice)
+    : selectedWasteType?.pricePerKg || 0;
   const weight = parseFloat(formData.weight) || 0;
   const totalValue = weight * currentPrice;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.rt || !formData.wasteType || !formData.weight || weight <= 0) {
+
+    if (
+      !formData.rt ||
+      !formData.wasteType ||
+      !formData.weight ||
+      weight <= 0
+    ) {
       toast({
         title: "Error",
         description: "Mohon lengkapi semua field dengan benar",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -73,14 +103,16 @@ export const WasteDeposit = () => {
       wasteType: selectedWasteType?.name || "",
       weight: weight,
       pricePerKg: currentPrice,
-      totalValue: totalValue
+      totalValue: totalValue,
     };
 
     setRecentDeposits([newDeposit, ...recentDeposits]);
-    
+
     toast({
       title: "Setoran Berhasil!",
-      description: `${formData.rt} berhasil menyetor ${weight} kg ${selectedWasteType?.name}. Tabungan bertambah Rp ${totalValue.toLocaleString('id-ID')}`,
+      description: `${formData.rt} berhasil menyetor ${weight} kg ${
+        selectedWasteType?.name
+      }. Tabungan bertambah Rp ${totalValue.toLocaleString("id-ID")}`,
     });
 
     // Reset form
@@ -89,7 +121,7 @@ export const WasteDeposit = () => {
       wasteType: "",
       weight: "",
       customPrice: "",
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split("T")[0],
     });
   };
 
@@ -97,7 +129,9 @@ export const WasteDeposit = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Input Setoran Sampah</h2>
-        <p className="text-muted-foreground">Catat setoran sampah dari RT dan kelola tabungan otomatis</p>
+        <p className="text-muted-foreground">
+          Catat setoran sampah dari RT dan kelola tabungan otomatis
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -109,9 +143,11 @@ export const WasteDeposit = () => {
                 <Scale className="h-5 w-5" />
                 <span>Form Setoran Sampah</span>
               </CardTitle>
-              <CardDescription>Masukkan detail setoran sampah dari RT</CardDescription>
+              <CardDescription>
+                Masukkan detail setoran sampah dari RT
+              </CardDescription>
             </CardHeader>
-            
+
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -123,7 +159,9 @@ export const WasteDeposit = () => {
                         id="date"
                         type="date"
                         value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
                         className="pl-10"
                       />
                     </div>
@@ -131,16 +169,31 @@ export const WasteDeposit = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="rt">Pilih RT</Label>
-                    <Select value={formData.rt} onValueChange={(value) => setFormData({ ...formData, rt: value })}>
+                    <Select
+                      value={formData.rt}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, rt: value })
+                      }
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder={rtList.length === 0 ? "Belum ada RT terdaftar" : "Pilih RT yang menyetor"} />
+                        <SelectValue
+                          placeholder={
+                            rtList.length === 0
+                              ? "Belum ada RT terdaftar"
+                              : "Pilih RT yang menyetor"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
                         {rtList.length === 0 ? (
-                          <SelectItem value="" disabled>Tambahkan RT terlebih dahulu</SelectItem>
+                          <SelectItem value="" disabled>
+                            Tambahkan RT terlebih dahulu
+                          </SelectItem>
                         ) : (
                           rtList.map((rt) => (
-                            <SelectItem key={rt} value={rt}>{rt}</SelectItem>
+                            <SelectItem key={rt} value={rt}>
+                              {rt}
+                            </SelectItem>
                           ))
                         )}
                       </SelectContent>
@@ -151,7 +204,16 @@ export const WasteDeposit = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="wasteType">Jenis Sampah</Label>
-                    <Select value={formData.wasteType} onValueChange={(value) => setFormData({ ...formData, wasteType: value, customPrice: "" })}>
+                    <Select
+                      value={formData.wasteType}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          wasteType: value,
+                          customPrice: "",
+                        })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih jenis sampah" />
                       </SelectTrigger>
@@ -161,7 +223,7 @@ export const WasteDeposit = () => {
                             <div className="flex justify-between items-center w-full">
                               <span>{type.name}</span>
                               <Badge variant="secondary" className="ml-2">
-                                Rp {type.pricePerKg.toLocaleString('id-ID')}/kg
+                                Rp {type.pricePerKg.toLocaleString("id-ID")}/kg
                               </Badge>
                             </div>
                           </SelectItem>
@@ -178,7 +240,9 @@ export const WasteDeposit = () => {
                       step="0.1"
                       placeholder="0.0"
                       value={formData.weight}
-                      onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, weight: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -190,13 +254,26 @@ export const WasteDeposit = () => {
                     <Input
                       id="customPrice"
                       type="number"
-                      placeholder={selectedWasteType ? `Default: Rp ${selectedWasteType.pricePerKg.toLocaleString('id-ID')}` : "Masukkan harga custom"}
+                      placeholder={
+                        selectedWasteType
+                          ? `Default: Rp ${selectedWasteType.pricePerKg.toLocaleString(
+                              "id-ID"
+                            )}`
+                          : "Masukkan harga custom"
+                      }
                       value={formData.customPrice}
-                      onChange={(e) => setFormData({ ...formData, customPrice: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customPrice: e.target.value,
+                        })
+                      }
                       className="pl-10"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Kosongkan untuk menggunakan harga default</p>
+                  <p className="text-xs text-muted-foreground">
+                    Kosongkan untuk menggunakan harga default
+                  </p>
                 </div>
 
                 {/* Calculation Preview */}
@@ -213,11 +290,15 @@ export const WasteDeposit = () => {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Harga/kg</p>
-                        <p className="font-medium">Rp {currentPrice.toLocaleString('id-ID')}</p>
+                        <p className="font-medium">
+                          Rp {currentPrice.toLocaleString("id-ID")}
+                        </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Nilai</p>
-                        <p className="font-bold text-success">Rp {totalValue.toLocaleString('id-ID')}</p>
+                        <p className="font-bold text-success">
+                          Rp {totalValue.toLocaleString("id-ID")}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -241,7 +322,9 @@ export const WasteDeposit = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Total Setoran</span>
+                <span className="text-sm text-muted-foreground">
+                  Total Setoran
+                </span>
                 <span className="font-medium">20.7 kg</span>
               </div>
               <div className="flex justify-between">
@@ -249,7 +332,9 @@ export const WasteDeposit = () => {
                 <span className="font-medium">5 RT</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Total Nilai</span>
+                <span className="text-sm text-muted-foreground">
+                  Total Nilai
+                </span>
                 <span className="font-bold text-success">Rp 87.100</span>
               </div>
             </CardContent>
@@ -265,23 +350,28 @@ export const WasteDeposit = () => {
                 {recentDeposits.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>Belum ada setoran</p>
-                    <p className="text-sm">Setoran pertama akan muncul di sini</p>
+                    <p className="text-sm">
+                      Setoran pertama akan muncul di sini
+                    </p>
                   </div>
                 ) : (
                   recentDeposits.slice(0, 5).map((deposit) => (
-                    <div key={deposit.id} className="flex justify-between items-start p-3 bg-accent/30 rounded-lg">
+                    <div
+                      key={deposit.id}
+                      className="flex justify-between items-start p-3 bg-accent/30 rounded-lg"
+                    >
                       <div>
                         <p className="font-medium text-sm">{deposit.rt}</p>
                         <p className="text-xs text-muted-foreground">
                           {deposit.weight} kg {deposit.wasteType}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(deposit.date).toLocaleDateString('id-ID')}
+                          {new Date(deposit.date).toLocaleDateString("id-ID")}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-sm text-success">
-                          +Rp {deposit.totalValue.toLocaleString('id-ID')}
+                          +Rp {deposit.totalValue.toLocaleString("id-ID")}
                         </p>
                       </div>
                     </div>
