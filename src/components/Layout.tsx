@@ -18,17 +18,24 @@ export const Layout = ({ children }: LayoutProps) => {
                 <Leaf className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-primary-foreground">Bank Sampah RW</h1>
-                <p className="text-sm text-primary-foreground/80">Sistem Tabungan Sampah</p>
+                <h1 className="text-xl font-bold text-primary-foreground">
+                  Bank Sampah RW
+                </h1>
+                <p className="text-sm text-primary-foreground/80">
+                  Sistem Tabungan Sampah
+                </p>
               </div>
             </div>
-            <Badge variant="secondary" className="bg-primary-foreground/10 text-primary-foreground">
-              v1.0
+            <Badge
+              variant="secondary"
+              className="bg-primary-foreground/10 text-primary-foreground"
+            >
+              v0.1 beta
             </Badge>
           </div>
         </div>
       </header>
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>

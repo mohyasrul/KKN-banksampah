@@ -1,58 +1,67 @@
-# Welcome to your Lovable project
+# Bank Sampah RW - Sistem Tabungan Sampah
 
-## Project info
+## Deskripsi Proyek
 
-**URL**: https://lovable.dev/projects/fce595b9-9a8a-40bf-ba02-cd8f807ed4dc
+Aplikasi mobile-first untuk pengelolaan bank sampah di RW 10 Desa Cidatar yang dapat berfungsi secara offline dengan fitur Progressive Web App (PWA).
 
-## How can I edit this code?
+## Teknologi yang Digunakan
 
-There are several ways of editing your application.
+- **Frontend**: React.js 18+
+- **Build Tool**: Vite
+- **PWA**: Service Worker + Web App Manifest
+- **Database Lokal**: IndexedDB/Local Storage
+- **UI Framework**: Tailwind CSS
+- **State Management**: React Context
+- **Offline Storage**: Local Storage/IndexedDB
 
-**Use Lovable**
+## Cara Menjalankan Aplikasi
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fce595b9-9a8a-40bf-ba02-cd8f807ed4dc) and start prompting.
+Pastikan Node.js & npm sudah terinstall - [install dengan nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Ikuti langkah berikut:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Step 2: Navigate ke direktori project
+cd rw-tabungan-hijau
 
-# Step 3: Install the necessary dependencies.
+# Step 3: Install dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Jalankan development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Fitur Utama
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Manajemen RT**: Input dan kelola data RT (Rukun Tetangga)
+- **Setoran Sampah**: Catat setoran sampah dengan auto kalkulasi nilai
+- **Tabungan**: Kelola saldo tabungan masing-masing RT
+- **Penarikan**: Validasi dan proses penarikan tabungan
+- **Laporan**: Generate laporan harian dan bulanan
+- **PWA**: Dapat diinstall dan bekerja offline
 
-**Use GitHub Codespaces**
+## Cara Edit File
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+**Edit langsung di GitHub**
 
-## What technologies are used for this project?
+- Navigate ke file yang diinginkan
+- Click tombol "Edit" (icon pensil) di kanan atas
+- Buat perubahan dan commit
 
-This project is built with:
+**Menggunakan GitHub Codespaces**
+
+- Navigate ke halaman utama repository
+- Click tombol "Code" (tombol hijau) di kanan atas
+- Pilih tab "Codespaces"
+- Click "New codespace" untuk launch environment baru
+- Edit file langsung dalam Codespaces
+
+## Teknologi yang Digunakan
+
+Project ini dibangun dengan:
 
 - Vite
 - TypeScript
@@ -60,14 +69,19 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/fce595b9-9a8a-40bf-ba02-cd8f807ed4dc) and click on Share -> Publish.
+Untuk deployment, Anda dapat menggunakan:
 
-## Can I connect a custom domain to my Lovable project?
+- **Vercel**: Connect repository dan auto-deploy
+- **Netlify**: Drag & drop atau connect Git
+- **GitHub Pages**: Untuk static hosting
+- **VPS/Server**: Build dan deploy manual
 
-Yes, you can!
+## Setup Custom Domain
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Jika menggunakan hosting seperti Vercel/Netlify, Anda dapat:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. Beli domain dari provider domain
+2. Configure DNS settings
+3. Connect domain di dashboard hosting
