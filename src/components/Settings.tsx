@@ -68,7 +68,7 @@ export const Settings = () => {
   };
 
   const handleBackupData = () => {
-    // Mock backup functionality
+    // Backup functionality - to be implemented with IndexedDB export
     toast({
       title: "Backup Berhasil",
       description: "Data telah di-backup ke file lokal",
@@ -76,7 +76,7 @@ export const Settings = () => {
   };
 
   const handleRestoreData = () => {
-    // Mock restore functionality
+    // Restore functionality - to be implemented with IndexedDB import
     toast({
       title: "Data Dipulihkan",
       description: "Data berhasil dipulihkan dari backup",
@@ -84,7 +84,7 @@ export const Settings = () => {
   };
 
   const handleResetData = () => {
-    // Mock reset functionality - would need confirmation dialog in real app
+    // Reset functionality - would need confirmation dialog in real app
     toast({
       title: "Data Direset",
       description: "Semua data telah dikembalikan ke pengaturan awal",

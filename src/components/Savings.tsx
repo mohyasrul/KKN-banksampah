@@ -44,84 +44,10 @@ export const Savings = () => {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
   
-  // Mock data
-  const [rtSavings, setRTSavings] = useState<RTSavings[]>([
-    {
-      id: "1",
-      rt: "RT 01",
-      balance: 325000,
-      totalDeposits: 450000,
-      totalWithdrawals: 125000,
-      transactionCount: 15,
-      lastTransaction: "2024-01-15"
-    },
-    {
-      id: "2",
-      rt: "RT 02", 
-      balance: 280000,
-      totalDeposits: 320000,
-      totalWithdrawals: 40000,
-      transactionCount: 12,
-      lastTransaction: "2024-01-14"
-    },
-    {
-      id: "3",
-      rt: "RT 03",
-      balance: 195000,
-      totalDeposits: 245000,
-      totalWithdrawals: 50000,
-      transactionCount: 8,
-      lastTransaction: "2024-01-13"
-    },
-    {
-      id: "4",
-      rt: "RT 04",
-      balance: 410000,
-      totalDeposits: 480000,
-      totalWithdrawals: 70000,
-      transactionCount: 22,
-      lastTransaction: "2024-01-15"
-    },
-    {
-      id: "5",
-      rt: "RT 05",
-      balance: 380000,
-      totalDeposits: 420000,
-      totalWithdrawals: 40000,
-      transactionCount: 18,
-      lastTransaction: "2024-01-15"
-    }
-  ]);
+  // Initialize empty data arrays - to be populated from IndexedDB
+  const [rtSavings, setRTSavings] = useState<RTSavings[]>([]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      rt: "RT 05",
-      type: "deposit",
-      amount: 62500,
-      description: "Setoran sampah plastik 12.5 kg",
-      date: "2024-01-15T14:30:00",
-      balance: 380000
-    },
-    {
-      id: "2",
-      rt: "RT 03", 
-      type: "withdrawal",
-      amount: 150000,
-      description: "Penarikan untuk kegiatan RT",
-      date: "2024-01-15T10:15:00",
-      balance: 195000
-    },
-    {
-      id: "3",
-      rt: "RT 08",
-      type: "deposit",
-      amount: 41000,
-      description: "Setoran sampah kertas 8.2 kg",
-      date: "2024-01-14T16:45:00",
-      balance: 280000
-    }
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const totalSavings = rtSavings.reduce((sum, rt) => sum + rt.balance, 0);
   const totalDeposits = rtSavings.reduce((sum, rt) => sum + rt.totalDeposits, 0);
@@ -317,30 +243,38 @@ export const Savings = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {rtSavings.map((rt) => (
-                <div key={rt.id} className="flex items-center justify-between p-4 bg-accent/30 rounded-lg hover:bg-accent/50 transition-colors">
-                  <div>
-                    <p className="font-medium">{rt.rt}</p>
-                    <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                      <span>{rt.transactionCount} transaksi</span>
-                      <span>Terakhir: {new Date(rt.lastTransaction).toLocaleDateString('id-ID')}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-success">Rp {rt.balance.toLocaleString('id-ID')}</p>
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                      <span className="flex items-center">
-                        <ArrowUpRight className="h-3 w-3 mr-1 text-success" />
-                        {rt.totalDeposits.toLocaleString('id-ID')}
-                      </span>
-                      <span className="flex items-center">
-                        <ArrowDownRight className="h-3 w-3 mr-1 text-warning" />
-                        {rt.totalWithdrawals.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  </div>
+              {rtSavings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-4" />
+                  <p>Belum ada data tabungan</p>
+                  <p className="text-sm">Tambahkan RT dan mulai setoran untuk melihat tabungan</p>
                 </div>
-              ))}
+              ) : (
+                rtSavings.map((rt) => (
+                  <div key={rt.id} className="flex items-center justify-between p-4 bg-accent/30 rounded-lg hover:bg-accent/50 transition-colors">
+                    <div>
+                      <p className="font-medium">{rt.rt}</p>
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
+                        <span>{rt.transactionCount} transaksi</span>
+                        <span>Terakhir: {new Date(rt.lastTransaction).toLocaleDateString('id-ID')}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-success">Rp {rt.balance.toLocaleString('id-ID')}</p>
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center">
+                          <ArrowUpRight className="h-3 w-3 mr-1 text-success" />
+                          {rt.totalDeposits.toLocaleString('id-ID')}
+                        </span>
+                        <span className="flex items-center">
+                          <ArrowDownRight className="h-3 w-3 mr-1 text-warning" />
+                          {rt.totalWithdrawals.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -356,40 +290,48 @@ export const Savings = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {transactions.slice(0, 8).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 border-l-4 border-l-primary/20 bg-accent/20 rounded-r-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-full ${
-                      transaction.type === 'deposit' 
-                        ? 'bg-success/10' 
-                        : 'bg-warning/10'
-                    }`}>
-                      {transaction.type === 'deposit' ? (
-                        <ArrowUpRight className="h-4 w-4 text-success" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-warning" />
-                      )}
+              {transactions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <History className="h-12 w-12 mx-auto mb-4" />
+                  <p>Belum ada transaksi</p>
+                  <p className="text-sm">Riwayat setoran dan penarikan akan muncul di sini</p>
+                </div>
+              ) : (
+                transactions.slice(0, 8).map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border-l-4 border-l-primary/20 bg-accent/20 rounded-r-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${
+                        transaction.type === 'deposit' 
+                          ? 'bg-success/10' 
+                          : 'bg-warning/10'
+                      }`}>
+                        {transaction.type === 'deposit' ? (
+                          <ArrowUpRight className="h-4 w-4 text-success" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-warning" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{transaction.rt}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(transaction.date).toLocaleString('id-ID')}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{transaction.rt}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.description}</p>
+                    <div className="text-right">
+                      <p className={`font-medium text-sm ${
+                        transaction.type === 'deposit' ? 'text-success' : 'text-warning'
+                      }`}>
+                        {transaction.type === 'deposit' ? '+' : '-'}Rp {transaction.amount.toLocaleString('id-ID')}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(transaction.date).toLocaleString('id-ID')}
+                        Saldo: Rp {transaction.balance.toLocaleString('id-ID')}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-medium text-sm ${
-                      transaction.type === 'deposit' ? 'text-success' : 'text-warning'
-                    }`}>
-                      {transaction.type === 'deposit' ? '+' : '-'}Rp {transaction.amount.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Saldo: Rp {transaction.balance.toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

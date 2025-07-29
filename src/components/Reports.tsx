@@ -28,44 +28,39 @@ export const Reports = () => {
   
   const [reportType, setReportType] = useState("monthly");
 
-  // Mock data for reports
+  // Initialize empty data - to be populated from IndexedDB
   const monthlyStats = {
-    totalDeposits: 1247.5,
-    totalValue: 5850000,
-    activeRTs: 8,
-    transactions: 87,
-    averagePerRT: 155.9,
-    growth: 12.5
+    totalDeposits: 0,
+    totalValue: 0,
+    activeRTs: 0,
+    transactions: 0,
+    averagePerRT: 0,
+    growth: 0
   };
 
-  const wasteTypeData = [
-    { type: "Plastik", weight: 485.2, value: 2426000, percentage: 38.9 },
-    { type: "Kertas", weight: 312.8, value: 938400, percentage: 25.1 },
-    { type: "Logam", weight: 125.5, value: 1004000, percentage: 10.1 },
-    { type: "Kardus", weight: 198.6, value: 496500, percentage: 15.9 },
-    { type: "Kaca", weight: 125.4, value: 250800, percentage: 10.1 }
-  ];
+  const wasteTypeData: Array<{
+    type: string;
+    weight: number;
+    value: number;
+    percentage: number;
+  }> = [];
 
-  const rtRanking = [
-    { rt: "RT 04", deposits: 187.5, value: 875000, transactions: 22, rank: 1 },
-    { rt: "RT 05", deposits: 165.2, value: 798000, transactions: 18, rank: 2 },
-    { rt: "RT 01", deposits: 142.8, value: 695000, transactions: 15, rank: 3 },
-    { rt: "RT 02", deposits: 128.4, value: 620000, transactions: 12, rank: 4 },
-    { rt: "RT 03", deposits: 98.6, value: 485000, transactions: 8, rank: 5 }
-  ];
+  const rtRanking: Array<{
+    rt: string;
+    deposits: number;
+    value: number;
+    transactions: number;
+    rank: number;
+  }> = [];
 
-  const dailyTrend = [
-    { date: "01 Jan", deposits: 45.2, value: 215000 },
-    { date: "02 Jan", deposits: 38.7, value: 185000 },
-    { date: "03 Jan", deposits: 52.1, value: 248000 },
-    { date: "04 Jan", deposits: 41.3, value: 198000 },
-    { date: "05 Jan", deposits: 47.8, value: 225000 },
-    { date: "06 Jan", deposits: 55.4, value: 265000 },
-    { date: "07 Jan", deposits: 43.9, value: 210000 }
-  ];
+  const dailyTrend: Array<{
+    date: string;
+    deposits: number;
+    value: number;
+  }> = [];
 
   const handleExport = (format: string) => {
-    // Mock export functionality
+    // Export functionality - to be implemented with real data
     console.log(`Exporting report in ${format} format`);
     // In real implementation, this would generate and download the file
   };
@@ -203,24 +198,32 @@ export const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {wasteTypeData.map((item, index) => (
-                <div key={item.type} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{item.type}</span>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{item.weight} kg</p>
-                      <p className="text-xs text-muted-foreground">Rp {item.value.toLocaleString('id-ID')}</p>
-                    </div>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-primary rounded-full h-2 transition-all"
-                      style={{ width: `${item.percentage}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">{item.percentage}% dari total</p>
+              {wasteTypeData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-4" />
+                  <p>Belum ada data jenis sampah</p>
+                  <p className="text-sm">Data akan muncul setelah ada setoran sampah</p>
                 </div>
-              ))}
+              ) : (
+                wasteTypeData.map((item, index) => (
+                  <div key={item.type} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{item.type}</span>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{item.weight} kg</p>
+                        <p className="text-xs text-muted-foreground">Rp {item.value.toLocaleString('id-ID')}</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary rounded-full h-2 transition-all"
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{item.percentage}% dari total</p>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -236,23 +239,31 @@ export const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {rtRanking.map((rt) => (
-                <div key={rt.rt} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Badge variant={rt.rank <= 3 ? "default" : "secondary"} className="w-8 h-8 rounded-full flex items-center justify-center">
-                      {rt.rank}
-                    </Badge>
-                    <div>
-                      <p className="font-medium">{rt.rt}</p>
-                      <p className="text-xs text-muted-foreground">{rt.transactions} transaksi</p>
+              {rtRanking.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Award className="h-12 w-12 mx-auto mb-4" />
+                  <p>Belum ada data ranking</p>
+                  <p className="text-sm">Ranking akan muncul setelah ada setoran dari RT</p>
+                </div>
+              ) : (
+                rtRanking.map((rt) => (
+                  <div key={rt.rt} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Badge variant={rt.rank <= 3 ? "default" : "secondary"} className="w-8 h-8 rounded-full flex items-center justify-center">
+                        {rt.rank}
+                      </Badge>
+                      <div>
+                        <p className="font-medium">{rt.rt}</p>
+                        <p className="text-xs text-muted-foreground">{rt.transactions} transaksi</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">{rt.deposits} kg</p>
+                      <p className="text-xs text-success">Rp {rt.value.toLocaleString('id-ID')}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-sm">{rt.deposits} kg</p>
-                    <p className="text-xs text-success">Rp {rt.value.toLocaleString('id-ID')}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

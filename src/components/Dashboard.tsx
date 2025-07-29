@@ -13,72 +13,52 @@ import {
 } from "lucide-react";
 
 export const Dashboard = () => {
-  // Mock data for demonstration
+  // Initialize empty data arrays - to be populated from IndexedDB
   const stats = [
     {
       title: "Total RT",
-      value: "12",
+      value: "0",
       description: "RT terdaftar",
       icon: Users,
-      trend: "+2 bulan ini"
+      trend: "Belum ada data"
     },
     {
       title: "Setoran Hari Ini",
-      value: "145.5",
+      value: "0",
       description: "kg sampah",
       icon: Scale,
-      trend: "+15% dari kemarin"
+      trend: "Belum ada data"
     },
     {
       title: "Total Tabungan",
-      value: "Rp 2.450.000",
+      value: "Rp 0",
       description: "saldo keseluruhan",
       icon: Wallet,
-      trend: "+8% bulan ini"
+      trend: "Belum ada data"
     },
     {
       title: "Transaksi Bulan Ini",
-      value: "87",
+      value: "0",
       description: "setoran & penarikan",
       icon: TrendingUp,
-      trend: "+12 dari bulan lalu"
+      trend: "Belum ada data"
     }
   ];
 
-  const recentTransactions = [
-    {
-      id: "1",
-      rt: "RT 05",
-      type: "setoran",
-      amount: "12.5 kg",
-      value: "Rp 62.500",
-      date: "Hari ini, 14:30"
-    },
-    {
-      id: "2", 
-      rt: "RT 03",
-      type: "penarikan",
-      amount: "Rp 150.000",
-      value: "-Rp 150.000",
-      date: "Hari ini, 10:15"
-    },
-    {
-      id: "3",
-      rt: "RT 08",
-      type: "setoran", 
-      amount: "8.2 kg",
-      value: "Rp 41.000",
-      date: "Kemarin, 16:45"
-    }
-  ];
+  const recentTransactions: Array<{
+    id: string;
+    rt: string;
+    type: string;
+    amount: string;
+    value: string;
+    date: string;
+  }> = [];
 
-  const rtSavings = [
-    { rt: "RT 01", balance: 325000, transactions: 15 },
-    { rt: "RT 02", balance: 280000, transactions: 12 },
-    { rt: "RT 03", balance: 195000, transactions: 8 },
-    { rt: "RT 04", balance: 410000, transactions: 22 },
-    { rt: "RT 05", balance: 380000, transactions: 18 }
-  ];
+  const rtSavings: Array<{
+    rt: string;
+    balance: number;
+    transactions: number;
+  }> = [];
 
   return (
     <div className="space-y-8">
@@ -137,37 +117,44 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-1 rounded-full ${
-                      transaction.type === 'setoran' 
-                        ? 'bg-success/10' 
-                        : 'bg-warning/10'
-                    }`}>
-                      {transaction.type === 'setoran' ? (
-                        <ArrowUpRight className="h-3 w-3 text-success" />
-                      ) : (
-                        <ArrowDownRight className="h-3 w-3 text-warning" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{transaction.rt}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.date}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-sm">{transaction.amount}</p>
-                    <p className={`text-xs ${
-                      transaction.type === 'setoran' 
-                        ? 'text-success' 
-                        : 'text-warning'
-                    }`}>
-                      {transaction.value}
-                    </p>
-                  </div>
+              {recentTransactions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Belum ada transaksi</p>
+                  <p className="text-sm">Transaksi akan muncul di sini setelah ada setoran atau penarikan</p>
                 </div>
-              ))}
+              ) : (
+                recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-1 rounded-full ${
+                        transaction.type === 'setoran' 
+                          ? 'bg-success/10' 
+                          : 'bg-warning/10'
+                      }`}>
+                        {transaction.type === 'setoran' ? (
+                          <ArrowUpRight className="h-3 w-3 text-success" />
+                        ) : (
+                          <ArrowDownRight className="h-3 w-3 text-warning" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{transaction.rt}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">{transaction.amount}</p>
+                      <p className={`text-xs ${
+                        transaction.type === 'setoran' 
+                          ? 'text-success' 
+                          : 'text-warning'
+                      }`}>
+                        {transaction.value}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -180,19 +167,26 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {rtSavings.map((rt) => (
-                <div key={rt.rt} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
-                  <div>
-                    <p className="font-medium text-sm">{rt.rt}</p>
-                    <p className="text-xs text-muted-foreground">{rt.transactions} transaksi</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-sm">
-                      Rp {rt.balance.toLocaleString('id-ID')}
-                    </p>
-                  </div>
+              {rtSavings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Belum ada data RT</p>
+                  <p className="text-sm">Tambahkan RT baru untuk melihat tabungan</p>
                 </div>
-              ))}
+              ) : (
+                rtSavings.map((rt) => (
+                  <div key={rt.rt} className="flex items-center justify-between p-3 bg-accent/30 rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{rt.rt}</p>
+                      <p className="text-xs text-muted-foreground">{rt.transactions} transaksi</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">
+                        Rp {rt.balance.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

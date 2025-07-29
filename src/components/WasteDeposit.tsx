@@ -36,29 +36,10 @@ export const WasteDeposit = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>([
-    {
-      id: "1",
-      date: "2024-01-15",
-      rt: "RT 05",
-      wasteType: "Plastik",
-      weight: 12.5,
-      pricePerKg: 5000,
-      totalValue: 62500
-    },
-    {
-      id: "2",
-      date: "2024-01-15", 
-      rt: "RT 03",
-      wasteType: "Kertas",
-      weight: 8.2,
-      pricePerKg: 3000,
-      totalValue: 24600
-    }
-  ]);
+  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>([]);
 
-  // Mock data
-  const rtList = ["RT 01", "RT 02", "RT 03", "RT 04", "RT 05", "RT 06", "RT 07", "RT 08"];
+  // Initialize empty RT list - to be populated from IndexedDB
+  const rtList: string[] = [];
   
   const wasteTypes: WasteType[] = [
     { id: "plastik", name: "Plastik", pricePerKg: 5000, unit: "kg" },
@@ -152,12 +133,16 @@ export const WasteDeposit = () => {
                     <Label htmlFor="rt">Pilih RT</Label>
                     <Select value={formData.rt} onValueChange={(value) => setFormData({ ...formData, rt: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih RT yang menyetor" />
+                        <SelectValue placeholder={rtList.length === 0 ? "Belum ada RT terdaftar" : "Pilih RT yang menyetor"} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
-                        {rtList.map((rt) => (
-                          <SelectItem key={rt} value={rt}>{rt}</SelectItem>
-                        ))}
+                        {rtList.length === 0 ? (
+                          <SelectItem value="" disabled>Tambahkan RT terlebih dahulu</SelectItem>
+                        ) : (
+                          rtList.map((rt) => (
+                            <SelectItem key={rt} value={rt}>{rt}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -277,24 +262,31 @@ export const WasteDeposit = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentDeposits.slice(0, 5).map((deposit) => (
-                  <div key={deposit.id} className="flex justify-between items-start p-3 bg-accent/30 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{deposit.rt}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {deposit.weight} kg {deposit.wasteType}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(deposit.date).toLocaleDateString('id-ID')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-sm text-success">
-                        +Rp {deposit.totalValue.toLocaleString('id-ID')}
-                      </p>
-                    </div>
+                {recentDeposits.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Belum ada setoran</p>
+                    <p className="text-sm">Setoran pertama akan muncul di sini</p>
                   </div>
-                ))}
+                ) : (
+                  recentDeposits.slice(0, 5).map((deposit) => (
+                    <div key={deposit.id} className="flex justify-between items-start p-3 bg-accent/30 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{deposit.rt}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {deposit.weight} kg {deposit.wasteType}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(deposit.date).toLocaleDateString('id-ID')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-sm text-success">
+                          +Rp {deposit.totalValue.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

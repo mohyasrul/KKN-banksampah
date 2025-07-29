@@ -24,38 +24,8 @@ export const RTManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRT, setEditingRT] = useState<RT | null>(null);
   
-  // Mock data
-  const [rtList, setRTList] = useState<RT[]>([
-    {
-      id: "1",
-      nomor: "RT 01",
-      ketuaRT: "Budi Santoso",
-      jumlahKK: 45,
-      alamat: "Jl. Mawar No. 1-15",
-      kontak: "081234567890",
-      saldo: 325000,
-      totalTransaksi: 15
-    },
-    {
-      id: "2", 
-      nomor: "RT 02",
-      ketuaRT: "Siti Aminah",
-      jumlahKK: 38,
-      alamat: "Jl. Melati No. 16-28",
-      kontak: "081234567891",
-      saldo: 280000,
-      totalTransaksi: 12
-    },
-    {
-      id: "3",
-      nomor: "RT 03", 
-      ketuaRT: "Ahmad Wijaya",
-      jumlahKK: 52,
-      alamat: "Jl. Anggrek No. 29-45",
-      saldo: 195000,
-      totalTransaksi: 8
-    }
-  ]);
+  // Initialize empty RT list - to be populated from IndexedDB
+  const [rtList, setRTList] = useState<RT[]>([]);
 
   const [formData, setFormData] = useState({
     nomor: "",
@@ -224,57 +194,75 @@ export const RTManagement = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rtList.map((rt) => (
-          <Card key={rt.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{rt.nomor}</CardTitle>
-                  <CardDescription>{rt.ketuaRT}</CardDescription>
-                </div>
-                <Badge variant="secondary">
-                  {rt.totalTransaksi} transaksi
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-3">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{rt.jumlahKK} KK</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{rt.alamat}</span>
-              </div>
-              
-              {rt.kontak && (
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{rt.kontak}</span>
-                </div>
-              )}
-              
-              <div className="pt-2 border-t">
-                <p className="text-sm font-medium">
-                  Saldo Tabungan: <span className="text-success">Rp {rt.saldo.toLocaleString('id-ID')}</span>
+        {rtList.length === 0 ? (
+          <div className="col-span-full">
+            <Card className="py-12">
+              <CardContent className="text-center">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Belum ada RT terdaftar</h3>
+                <p className="text-muted-foreground mb-4">
+                  Mulai dengan menambahkan data RT pertama untuk Bank Sampah RW 10
                 </p>
-              </div>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah RT Pertama
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          rtList.map((rt) => (
+            <Card key={rt.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{rt.nomor}</CardTitle>
+                    <CardDescription>{rt.ketuaRT}</CardDescription>
+                  </div>
+                  <Badge variant="secondary">
+                    {rt.totalTransaksi} transaksi
+                  </Badge>
+                </div>
+              </CardHeader>
               
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" onClick={() => handleEdit(rt)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleDelete(rt.id)}>
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Hapus
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              <CardContent className="space-y-3">
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>{rt.jumlahKK} KK</span>
+                </div>
+                
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  <span>{rt.alamat}</span>
+                </div>
+                
+                {rt.kontak && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span>{rt.kontak}</span>
+                  </div>
+                )}
+                
+                <div className="pt-2 border-t">
+                  <p className="text-sm font-medium">
+                    Saldo Tabungan: <span className="text-success">Rp {rt.saldo.toLocaleString('id-ID')}</span>
+                  </p>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(rt)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(rt.id)}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Hapus
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
