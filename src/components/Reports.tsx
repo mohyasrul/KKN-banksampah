@@ -31,8 +31,16 @@ import {
   Target,
   Award,
 } from "lucide-react";
+import { useBankSampahData } from "@/hooks/useBankSampahData";
 
 export const Reports = () => {
+  const {
+    rtList,
+    transactions,
+    wasteTypes,
+    getTransactionsByRT,
+    getTransactionsByDate,
+  } = useBankSampahData();
   const [dateRange, setDateRange] = useState({
     startDate: "2024-01-01",
     endDate: "2024-01-31",
@@ -40,36 +48,105 @@ export const Reports = () => {
 
   const [reportType, setReportType] = useState("monthly");
 
-  // Initialize empty data - to be populated from IndexedDB
+  // Calculate real monthly stats from transactions
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  const monthlyTransactions = transactions.filter((t) =>
+    t.date.startsWith(currentMonth)
+  );
+
   const monthlyStats = {
-    totalDeposits: 0,
-    totalValue: 0,
-    activeRTs: 0,
-    transactions: 0,
-    averagePerRT: 0,
-    growth: 0,
+    totalDeposits: monthlyTransactions.reduce((sum, t) => sum + t.weight, 0),
+    totalValue: monthlyTransactions.reduce((sum, t) => sum + t.totalValue, 0),
+    activeRTs: new Set(monthlyTransactions.map((t) => t.rt)).size,
+    transactions: monthlyTransactions.length,
+    averagePerRT:
+      monthlyTransactions.length > 0
+        ? monthlyTransactions.reduce((sum, t) => sum + t.totalValue, 0) /
+          new Set(monthlyTransactions.map((t) => t.rt)).size
+        : 0,
+    growth: 0, // Could be calculated by comparing with previous month
   };
 
-  const wasteTypeData: Array<{
-    type: string;
-    weight: number;
-    value: number;
-    percentage: number;
-  }> = [];
+  // Calculate waste type distribution
+  const wasteTypeStats = new Map();
+  transactions.forEach((t) => {
+    const current = wasteTypeStats.get(t.wasteTypeName) || {
+      weight: 0,
+      value: 0,
+      count: 0,
+    };
+    wasteTypeStats.set(t.wasteTypeName, {
+      weight: current.weight + t.weight,
+      value: current.value + t.totalValue,
+      count: current.count + 1,
+    });
+  });
 
-  const rtRanking: Array<{
-    rt: string;
-    deposits: number;
-    value: number;
-    transactions: number;
-    rank: number;
-  }> = [];
+  const totalWeight = transactions.reduce((sum, t) => sum + t.weight, 0);
+  const wasteTypeData = Array.from(wasteTypeStats.entries())
+    .map(([type, stats]) => ({
+      type,
+      weight: stats.weight,
+      value: stats.value,
+      percentage: totalWeight > 0 ? (stats.weight / totalWeight) * 100 : 0,
+    }))
+    .sort((a, b) => b.weight - a.weight);
 
-  const dailyTrend: Array<{
-    date: string;
-    deposits: number;
-    value: number;
-  }> = [];
+  // Calculate RT ranking
+  const rtStats = new Map();
+  transactions.forEach((t) => {
+    const current = rtStats.get(t.rt) || {
+      deposits: 0,
+      value: 0,
+      transactions: 0,
+    };
+    rtStats.set(t.rt, {
+      deposits: current.deposits + t.weight,
+      value: current.value + t.totalValue,
+      transactions: current.transactions + 1,
+    });
+  });
+
+  const rtRanking = Array.from(rtStats.entries())
+    .map(([rt, stats]) => ({
+      rt,
+      deposits: stats.deposits,
+      value: stats.value,
+      transactions: stats.transactions,
+      rank: 0,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+
+  // Calculate daily trend for last 7 days
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return date.toISOString().split("T")[0];
+  });
+
+  const dailyStats = new Map();
+  transactions.forEach((t) => {
+    if (last7Days.includes(t.date)) {
+      const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
+      dailyStats.set(t.date, {
+        deposits: current.deposits + t.weight,
+        value: current.value + t.totalValue,
+      });
+    }
+  });
+
+  const dailyTrend = last7Days.map((date) => ({
+    date: new Date(date).toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+    }),
+    deposits: dailyStats.get(date)?.deposits || 0,
+    value: dailyStats.get(date)?.value || 0,
+  }));
 
   const handleExport = (format: string) => {
     // Export functionality - to be implemented with real data
@@ -199,7 +276,7 @@ export const Reports = () => {
           <CardContent>
             <div className="text-2xl font-bold">{monthlyStats.activeRTs}</div>
             <p className="text-xs text-muted-foreground">
-              dari 12 RT terdaftar
+              dari {rtList.length} RT terdaftar
             </p>
           </CardContent>
         </Card>
@@ -339,30 +416,45 @@ export const Reports = () => {
         <CardContent>
           <div className="space-y-4">
             {/* Simple bar chart representation */}
-            <div className="grid grid-cols-7 gap-2">
-              {dailyTrend.map((day, index) => {
-                const maxValue = Math.max(...dailyTrend.map((d) => d.deposits));
-                const height = (day.deposits / maxValue) * 100;
+            {dailyTrend.every((d) => d.deposits === 0) ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4" />
+                <p>Belum ada data setoran 7 hari terakhir</p>
+                <p className="text-sm">
+                  Grafik akan muncul setelah ada setoran sampah
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-7 gap-2">
+                {dailyTrend.map((day, index) => {
+                  const maxValue =
+                    Math.max(...dailyTrend.map((d) => d.deposits)) || 1;
+                  const height =
+                    maxValue > 0 ? (day.deposits / maxValue) * 100 : 0;
 
-                return (
-                  <div key={day.date} className="text-center">
-                    <div className="bg-muted rounded-lg p-2 mb-2 h-32 flex items-end justify-center">
-                      <div
-                        className="bg-primary rounded-sm w-full transition-all"
-                        style={{ height: `${height}%` }}
-                        title={`${
-                          day.deposits
-                        } kg - Rp ${day.value.toLocaleString("id-ID")}`}
-                      />
+                  return (
+                    <div key={`${day.date}-${index}`} className="text-center">
+                      <div className="bg-muted rounded-lg p-2 mb-2 h-32 flex items-end justify-center">
+                        <div
+                          className="bg-primary rounded-sm w-full transition-all"
+                          style={{
+                            height: `${height}%`,
+                            minHeight: day.deposits > 0 ? "8px" : "0px",
+                          }}
+                          title={`${
+                            day.deposits
+                          } kg - Rp ${day.value.toLocaleString("id-ID")}`}
+                        />
+                      </div>
+                      <p className="text-xs font-medium">{day.date}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {day.deposits} kg
+                      </p>
                     </div>
-                    <p className="text-xs font-medium">{day.date}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {day.deposits} kg
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

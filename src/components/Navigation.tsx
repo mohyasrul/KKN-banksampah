@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { 
-  Home, 
-  Users, 
-  Scale, 
-  Wallet, 
-  BarChart3, 
+import {
+  Home,
+  Users,
+  Scale,
+  Wallet,
+  BarChart3,
   Settings,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -23,7 +23,7 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "waste-deposit", label: "Input Setoran", icon: Scale },
     { id: "savings", label: "Tabungan", icon: Wallet },
     { id: "reports", label: "Laporan", icon: BarChart3 },
-    { id: "settings", label: "Pengaturan", icon: Settings }
+    { id: "settings", label: "Pengaturan", icon: Settings },
   ];
 
   return (

@@ -17,6 +17,7 @@ Aplikasi web Progressive Web App (PWA) untuk pengelolaan bank sampah di RW 10 De
 ## 🏗️ Arsitektur Application
 
 ### Struktur Folder
+
 ```
 src/
 ├── components/           # Komponen React utama
@@ -43,9 +44,11 @@ src/
 ## 💾 Sistem Data Management
 
 ### useBankSampahData Hook
+
 Hook utama yang mengelola semua data aplikasi dengan localStorage:
 
 **Data Structure:**
+
 ```typescript
 interface RT {
   id: string;
@@ -60,7 +63,7 @@ interface Transaction {
   id: string;
   rtId: string;
   rtName: string;
-  type: 'deposit' | 'withdrawal';
+  type: "deposit" | "withdrawal";
   weight: number;
   amount: number;
   date: string;
@@ -69,6 +72,7 @@ interface Transaction {
 ```
 
 **Key Functions:**
+
 - `addRT()` - Tambah RT baru
 - `updateRT()` - Update data RT
 - `deleteRT()` - Hapus RT
@@ -77,6 +81,7 @@ interface Transaction {
 - `getStatistics()` - Hitung statistik real-time
 
 ### Data Persistence
+
 - **Storage**: localStorage browser
 - **Key**: `bankSampahData`
 - **Auto-save**: Setiap perubahan data otomatis tersimpan
@@ -85,18 +90,21 @@ interface Transaction {
 ## 🔄 Fitur Utama
 
 ### 1. Dashboard
+
 - **Real-time Statistics**: Total RT, saldo, transaksi hari ini
 - **Recent Transactions**: 5 transaksi terakhir
 - **RT Overview**: Daftar RT dengan saldo masing-masing
 - **Quick Actions**: Akses cepat ke fitur utama
 
 ### 2. Manajemen RT
+
 - **CRUD Operations**: Create, Read, Update, Delete RT
 - **Data Validation**: Validasi nama RT unik
 - **Auto-numbering**: Otomatis generate ID RT
 - **Balance Tracking**: Lacak saldo setiap RT
 
 ### 3. Setoran Sampah
+
 - **Weight Input**: Input berat sampah (kg)
 - **Auto Calculation**: Hitung nilai otomatis (Rp 2,000/kg)
 - **RT Selection**: Pilih RT pengirim
@@ -104,18 +112,21 @@ interface Transaction {
 - **Transaction Log**: Simpan riwayat setoran
 
 ### 4. Tabungan & Penarikan
+
 - **Balance Display**: Tampil saldo setiap RT
 - **Withdrawal Form**: Form penarikan dengan validasi
 - **Balance Validation**: Cek saldo mencukupi
 - **Transaction History**: Riwayat penarikan
 
 ### 5. Laporan
+
 - **Transaction Summary**: Ringkasan transaksi
 - **RT Performance**: Performa setoran per RT
 - **Date Filtering**: Filter berdasarkan tanggal
 - **Export Data**: Export ke format yang bisa dibaca
 
 ### 6. Settings
+
 - **App Configuration**: Pengaturan aplikasi
 - **Data Management**: Backup/restore data
 - **System Information**: Info versi dan status
@@ -123,10 +134,12 @@ interface Transaction {
 ## 🚀 Cara Menjalankan
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - npm atau yarn
 
 ### Installation
+
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -146,21 +159,25 @@ npm run preview
 ```
 
 ### Environment Setup
+
 Aplikasi tidak memerlukan environment variables khusus karena menggunakan localStorage.
 
 ## 🧪 Development & Testing
 
 ### Code Quality
+
 - **TypeScript**: Strict type checking
 - **ESLint**: Code linting dengan rules modern
 - **Prettier**: Code formatting (opsional)
 
 ### Build Process
+
 - **Vite**: Fast development dan optimized production build
 - **Hot Reload**: Perubahan code langsung terlihat
 - **Tree Shaking**: Bundle size optimization
 
 ### Debugging
+
 - **React DevTools**: Debug component state
 - **Browser DevTools**: Inspect localStorage data
 - **Console Logging**: Debug data flow
@@ -168,11 +185,13 @@ Aplikasi tidak memerlukan environment variables khusus karena menggunakan localS
 ## 📱 PWA Features
 
 ### Responsive Design
+
 - **Mobile First**: Optimized untuk mobile
 - **Tablet Support**: Layout responsif tablet
 - **Desktop Compatible**: Berfungsi di desktop
 
 ### Offline Capability
+
 - **localStorage**: Data tersimpan lokal
 - **No Server Dependency**: Tidak perlu koneksi internet
 - **Instant Loading**: Data load langsung dari browser
@@ -182,10 +201,12 @@ Aplikasi tidak memerlukan environment variables khusus karena menggunakan localS
 ### Common Issues
 
 1. **Data Loss**
+
    - **Cause**: Browser cache cleared
    - **Solution**: Implementasi backup/restore feature
 
 2. **Performance Issues**
+
    - **Cause**: Large data di localStorage
    - **Solution**: Data cleanup/pagination
 
@@ -194,16 +215,18 @@ Aplikasi tidak memerlukan environment variables khusus karena menggunakan localS
    - **Solution**: Check konsol dan fix errors
 
 ### Data Backup
+
 ```javascript
 // Export data
-const data = localStorage.getItem('bankSampahData');
+const data = localStorage.getItem("bankSampahData");
 console.log(data); // Copy dan simpan
 
 // Import data
-localStorage.setItem('bankSampahData', 'paste-data-here');
+localStorage.setItem("bankSampahData", "paste-data-here");
 ```
 
 ### Performance Optimization
+
 - Regular data cleanup untuk menghapus transaksi lama
 - Implementasi pagination untuk data besar
 - Lazy loading untuk komponen berat
@@ -211,12 +234,14 @@ localStorage.setItem('bankSampahData', 'paste-data-here');
 ## 📈 Statistik & Analytics
 
 ### Real-time Metrics
+
 - Total RT aktif
 - Total saldo sistem
 - Transaksi hari ini (setoran + penarikan)
 - Average setoran per RT
 
 ### Historical Data
+
 - Trend setoran bulanan
 - Top performing RT
 - Transaction volume analysis
@@ -224,11 +249,13 @@ localStorage.setItem('bankSampahData', 'paste-data-here');
 ## 🔐 Data Security
 
 ### Client-side Security
+
 - **localStorage Encryption**: Bisa implementasi enkripsi data
 - **Input Validation**: Validasi semua input user
 - **XSS Protection**: React built-in XSS protection
 
 ### Best Practices
+
 - Regular data backup
 - Input sanitization
 - Error boundary implementation
@@ -236,6 +263,7 @@ localStorage.setItem('bankSampahData', 'paste-data-here');
 ## 🚀 Future Enhancements
 
 ### Planned Features
+
 1. **Export to Excel**: Export laporan ke Excel
 2. **Print Reports**: Print-friendly laporan
 3. **Data Sync**: Sync data antar device
@@ -243,6 +271,7 @@ localStorage.setItem('bankSampahData', 'paste-data-here');
 5. **Advanced Analytics**: Chart dan graph
 
 ### Technical Improvements
+
 1. **Database Migration**: Upgrade ke IndexedDB
 2. **PWA Optimization**: Service worker implementation
 3. **Performance**: Virtual scrolling untuk data besar
@@ -251,15 +280,17 @@ localStorage.setItem('bankSampahData', 'paste-data-here');
 ## 📞 Support & Contact
 
 ### Development Team
+
 - **Project**: Bank Sampah RW 10 Desa Cidatar
 - **Tech Stack**: React + TypeScript + Vite
 - **Version**: 1.0.0
 
 ### Resources
+
 - **Repository**: GitHub repository link
 - **Documentation**: File dokumentasi ini
 - **Issue Tracking**: GitHub Issues
 
 ---
 
-*Dokumentasi ini mencakup semua aspek teknis dan fungsional aplikasi Bank Sampah RW 10. Update secara berkala sesuai perkembangan fitur.*
+_Dokumentasi ini mencakup semua aspek teknis dan fungsional aplikasi Bank Sampah RW 10. Update secara berkala sesuai perkembangan fitur._

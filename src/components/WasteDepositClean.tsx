@@ -19,33 +19,27 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
-  CalendarDays,
   Scale,
   DollarSign,
   Calculator,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useBankSampahData } from "@/hooks/useBankSampahData";
 
-interface WasteType {
-  id: string;
-  name: string;
-  pricePerKg: number;
-  unit: string;
-}
-
-interface DepositTransaction {
-  id: string;
-  date: string;
-  rt: string;
-  wasteType: string;
-  weight: number;
-  pricePerKg: number;
-  totalValue: number;
-}
-
-export const WasteDeposit = () => {
+export const WasteDepositClean = () => {
   const { toast } = useToast();
+
+  // Use persisted data hooks
+  const {
+    rtList,
+    wasteTypes,
+    addTransaction,
+    getTodayStats,
+    getRecentTransactions,
+    isLoading,
+  } = useBankSampahData();
 
   const [formData, setFormData] = useState({
     rt: "",
@@ -55,20 +49,11 @@ export const WasteDeposit = () => {
     date: new Date().toISOString().split("T")[0],
   });
 
-  const [recentDeposits, setRecentDeposits] = useState<DepositTransaction[]>(
-    []
-  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize empty RT list - to be populated from IndexedDB
-  const rtList: string[] = [];
-
-  const wasteTypes: WasteType[] = [
-    { id: "plastik", name: "Plastik", pricePerKg: 5000, unit: "kg" },
-    { id: "kertas", name: "Kertas", pricePerKg: 3000, unit: "kg" },
-    { id: "logam", name: "Logam", pricePerKg: 8000, unit: "kg" },
-    { id: "kaca", name: "Kaca", pricePerKg: 2000, unit: "kg" },
-    { id: "kardus", name: "Kardus", pricePerKg: 2500, unit: "kg" },
-  ];
+  // Get current stats and recent transactions
+  const todayStats = getTodayStats();
+  const recentTransactions = getRecentTransactions(5);
 
   const selectedWasteType = wasteTypes.find(
     (type) => type.id === formData.wasteType
@@ -79,8 +64,9 @@ export const WasteDeposit = () => {
   const weight = parseFloat(formData.weight) || 0;
   const totalValue = weight * currentPrice;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (
       !formData.rt ||
@@ -93,37 +79,60 @@ export const WasteDeposit = () => {
         description: "Mohon lengkapi semua field dengan benar",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
-    const newDeposit: DepositTransaction = {
-      id: Date.now().toString(),
-      date: formData.date,
-      rt: formData.rt,
-      wasteType: selectedWasteType?.name || "",
-      weight: weight,
-      pricePerKg: currentPrice,
-      totalValue: totalValue,
-    };
+    try {
+      // Save to localStorage using the hook
+      addTransaction({
+        date: formData.date,
+        rt: formData.rt,
+        wasteType: formData.wasteType,
+        wasteTypeName: selectedWasteType?.name || "",
+        weight: weight,
+        pricePerKg: currentPrice,
+        totalValue: totalValue,
+      });
 
-    setRecentDeposits([newDeposit, ...recentDeposits]);
+      toast({
+        title: "Setoran Berhasil!",
+        description: `${formData.rt} berhasil menyetor ${weight} kg ${
+          selectedWasteType?.name
+        }. Tabungan bertambah Rp ${totalValue.toLocaleString("id-ID")}`,
+      });
 
-    toast({
-      title: "Setoran Berhasil!",
-      description: `${formData.rt} berhasil menyetor ${weight} kg ${
-        selectedWasteType?.name
-      }. Tabungan bertambah Rp ${totalValue.toLocaleString("id-ID")}`,
-    });
-
-    // Reset form
-    setFormData({
-      rt: "",
-      wasteType: "",
-      weight: "",
-      customPrice: "",
-      date: new Date().toISOString().split("T")[0],
-    });
+      // Reset form
+      setFormData({
+        rt: "",
+        wasteType: "",
+        weight: "",
+        customPrice: "",
+        date: new Date().toISOString().split("T")[0],
+      });
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan setoran. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Show loading state while data is being loaded
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Memuat data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -176,26 +185,14 @@ export const WasteDeposit = () => {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            rtList.length === 0
-                              ? "Belum ada RT terdaftar"
-                              : "Pilih RT yang menyetor"
-                          }
-                        />
+                        <SelectValue placeholder="Pilih RT yang menyetor" />
                       </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {rtList.length === 0 ? (
-                          <SelectItem value="" disabled>
-                            Tambahkan RT terlebih dahulu
+                      <SelectContent>
+                        {rtList.map((rt) => (
+                          <SelectItem key={rt.id} value={rt.nomor}>
+                            {rt.nomor} - {rt.ketuaRT}
                           </SelectItem>
-                        ) : (
-                          rtList.map((rt) => (
-                            <SelectItem key={rt} value={rt}>
-                              {rt}
-                            </SelectItem>
-                          ))
-                        )}
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -217,7 +214,7 @@ export const WasteDeposit = () => {
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih jenis sampah" />
                       </SelectTrigger>
-                      <SelectContent className="bg-popover">
+                      <SelectContent>
                         {wasteTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
                             <div className="flex justify-between items-center w-full">
@@ -296,7 +293,7 @@ export const WasteDeposit = () => {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Nilai</p>
-                        <p className="font-bold text-success">
+                        <p className="font-bold text-green-600">
                           Rp {totalValue.toLocaleString("id-ID")}
                         </p>
                       </div>
@@ -304,9 +301,23 @@ export const WasteDeposit = () => {
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" size="lg">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Catat Setoran
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Catat Setoran
+                    </>
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -325,17 +336,21 @@ export const WasteDeposit = () => {
                 <span className="text-sm text-muted-foreground">
                   Total Setoran
                 </span>
-                <span className="font-medium">20.7 kg</span>
+                <span className="font-medium">
+                  {todayStats.totalWeight.toFixed(1)} kg
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Jumlah RT</span>
-                <span className="font-medium">5 RT</span>
+                <span className="font-medium">{todayStats.totalRT} RT</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">
                   Total Nilai
                 </span>
-                <span className="font-bold text-success">Rp 87.100</span>
+                <span className="font-bold text-green-600">
+                  Rp {todayStats.totalValue.toLocaleString("id-ID")}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -347,7 +362,7 @@ export const WasteDeposit = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentDeposits.length === 0 ? (
+                {recentTransactions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>Belum ada setoran</p>
                     <p className="text-sm">
@@ -355,23 +370,25 @@ export const WasteDeposit = () => {
                     </p>
                   </div>
                 ) : (
-                  recentDeposits.slice(0, 5).map((deposit) => (
+                  recentTransactions.map((transaction) => (
                     <div
-                      key={deposit.id}
+                      key={transaction.id}
                       className="flex justify-between items-start p-3 bg-accent/30 rounded-lg"
                     >
                       <div>
-                        <p className="font-medium text-sm">{deposit.rt}</p>
+                        <p className="font-medium text-sm">{transaction.rt}</p>
                         <p className="text-xs text-muted-foreground">
-                          {deposit.weight} kg {deposit.wasteType}
+                          {transaction.weight} kg {transaction.wasteTypeName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(deposit.date).toLocaleDateString("id-ID")}
+                          {new Date(transaction.date).toLocaleDateString(
+                            "id-ID"
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-sm text-success">
-                          +Rp {deposit.totalValue.toLocaleString("id-ID")}
+                        <p className="font-medium text-sm text-green-600">
+                          +Rp {transaction.totalValue.toLocaleString("id-ID")}
                         </p>
                       </div>
                     </div>

@@ -17,54 +17,80 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
+import { useBankSampahData } from "@/hooks/useBankSampahData";
 
 export const Dashboard = () => {
-  // Initialize empty data arrays - to be populated from IndexedDB
+  const { rtList, transactions, getTodayStats, getRecentTransactions } =
+    useBankSampahData();
+
+  // Calculate real-time statistics
+  const todayStats = getTodayStats();
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  const monthlyTransactions = transactions.filter((t) =>
+    t.date.startsWith(currentMonth)
+  );
+  const totalSavings = rtList.reduce((sum, rt) => sum + rt.saldo, 0);
+
+  // Dynamic stats with real data
   const stats = [
     {
       title: "Total RT",
-      value: "0",
+      value: rtList.length.toString(),
       description: "RT terdaftar",
       icon: Users,
-      trend: "Belum ada data",
+      trend: rtList.length > 0 ? "Aktif" : "Belum ada data",
     },
     {
       title: "Setoran Hari Ini",
-      value: "0",
+      value: todayStats.totalWeight.toString(),
       description: "kg sampah",
       icon: Scale,
-      trend: "Belum ada data",
+      trend:
+        todayStats.totalTransactions > 0
+          ? `${todayStats.totalTransactions} transaksi`
+          : "Belum ada data",
     },
     {
       title: "Total Tabungan",
-      value: "Rp 0",
+      value: `Rp ${totalSavings.toLocaleString("id-ID")}`,
       description: "saldo keseluruhan",
       icon: Wallet,
-      trend: "Belum ada data",
+      trend: totalSavings > 0 ? "Tersimpan" : "Belum ada data",
     },
     {
       title: "Transaksi Bulan Ini",
-      value: "0",
+      value: monthlyTransactions.length.toString(),
       description: "setoran & penarikan",
       icon: TrendingUp,
-      trend: "Belum ada data",
+      trend:
+        monthlyTransactions.length > 0
+          ? `Rp ${monthlyTransactions
+              .reduce((sum, t) => sum + t.totalValue, 0)
+              .toLocaleString("id-ID")}`
+          : "Belum ada data",
     },
   ];
 
-  const recentTransactions: Array<{
-    id: string;
-    rt: string;
-    type: string;
-    amount: string;
-    value: string;
-    date: string;
-  }> = [];
+  // Get recent transactions (limit 5 for dashboard)
+  const recentTransactions = getRecentTransactions(5).map((transaction) => ({
+    id: transaction.id,
+    rt: transaction.rt,
+    type: "setoran", // All current transactions are deposits
+    amount: `${transaction.weight} kg`,
+    value: `+Rp ${transaction.totalValue.toLocaleString("id-ID")}`,
+    date: new Date(transaction.date).toLocaleDateString("id-ID"),
+    wasteTypeName: transaction.wasteTypeName,
+  }));
 
-  const rtSavings: Array<{
-    rt: string;
-    balance: number;
-    transactions: number;
-  }> = [];
+  // RT Savings overview (top 5 by balance)
+  const rtSavings = rtList
+    .map((rt) => ({
+      rt: rt.nomor,
+      balance: rt.saldo,
+      transactions: rt.totalTransaksi,
+    }))
+    .sort((a, b) => b.balance - a.balance)
+    .slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -153,23 +179,13 @@ export const Dashboard = () => {
                     className="flex items-center justify-between p-3 bg-accent/30 rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-1 rounded-full ${
-                          transaction.type === "setoran"
-                            ? "bg-success/10"
-                            : "bg-warning/10"
-                        }`}
-                      >
-                        {transaction.type === "setoran" ? (
-                          <ArrowUpRight className="h-3 w-3 text-success" />
-                        ) : (
-                          <ArrowDownRight className="h-3 w-3 text-warning" />
-                        )}
+                      <div className="p-1 rounded-full bg-success/10">
+                        <ArrowUpRight className="h-3 w-3 text-success" />
                       </div>
                       <div>
                         <p className="font-medium text-sm">{transaction.rt}</p>
                         <p className="text-xs text-muted-foreground">
-                          {transaction.date}
+                          {transaction.wasteTypeName} - {transaction.date}
                         </p>
                       </div>
                     </div>
@@ -177,13 +193,7 @@ export const Dashboard = () => {
                       <p className="font-medium text-sm">
                         {transaction.amount}
                       </p>
-                      <p
-                        className={`text-xs ${
-                          transaction.type === "setoran"
-                            ? "text-success"
-                            : "text-warning"
-                        }`}
-                      >
+                      <p className="text-xs text-success">
                         {transaction.value}
                       </p>
                     </div>

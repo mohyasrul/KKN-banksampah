@@ -30,38 +30,37 @@ import {
   Target,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface RTSavings {
-  id: string;
-  rt: string;
-  balance: number;
-  totalDeposits: number;
-  totalWithdrawals: number;
-  transactionCount: number;
-  lastTransaction: string;
-}
-
-interface Transaction {
-  id: string;
-  rt: string;
-  type: "deposit" | "withdrawal";
-  amount: number;
-  description: string;
-  date: string;
-  balance: number;
-}
+import { useBankSampahData } from "@/hooks/useBankSampahData";
 
 export const Savings = () => {
   const { toast } = useToast();
+  const { rtList, transactions, getTransactionsByRT, updateRT } =
+    useBankSampahData();
+
   const [selectedRT, setSelectedRT] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
 
-  // Initialize empty data arrays - to be populated from IndexedDB
-  const [rtSavings, setRTSavings] = useState<RTSavings[]>([]);
+  // Calculate RT savings data from actual transactions
+  const rtSavings = rtList.map((rt) => {
+    const rtTransactions = getTransactionsByRT(rt.nomor);
+    const totalDeposits = rtTransactions.reduce(
+      (sum, t) => sum + t.totalValue,
+      0
+    );
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+    return {
+      id: rt.id,
+      rt: rt.nomor,
+      balance: rt.saldo,
+      totalDeposits: totalDeposits,
+      totalWithdrawals: 0, // To be implemented later
+      transactionCount: rt.totalTransaksi,
+      lastTransaction: rtTransactions[0]?.createdAt || rt.createdAt,
+    };
+  });
 
+  // Calculate totals
   const totalSavings = rtSavings.reduce((sum, rt) => sum + rt.balance, 0);
   const totalDeposits = rtSavings.reduce(
     (sum, rt) => sum + rt.totalDeposits,
@@ -96,43 +95,23 @@ export const Savings = () => {
     }
 
     // Update RT balance
-    setRTSavings(
-      rtSavings.map((rt) =>
-        rt.rt === selectedRT
-          ? {
-              ...rt,
-              balance: rt.balance - amount,
-              totalWithdrawals: rt.totalWithdrawals + amount,
-              transactionCount: rt.transactionCount + 1,
-              lastTransaction: new Date().toISOString().split("T")[0],
-            }
-          : rt
-      )
-    );
+    const targetRT = rtList.find((rt) => rt.nomor === selectedRT);
+    if (targetRT) {
+      updateRT(targetRT.id, {
+        saldo: targetRT.saldo - amount,
+      });
 
-    // Add transaction record
-    const newTransaction: Transaction = {
-      id: Date.now().toString(),
-      rt: selectedRT,
-      type: "withdrawal",
-      amount: amount,
-      description: "Penarikan tabungan",
-      date: new Date().toISOString(),
-      balance: selectedRTData.balance - amount,
-    };
+      toast({
+        title: "Penarikan Berhasil!",
+        description: `Berhasil menarik Rp ${amount.toLocaleString(
+          "id-ID"
+        )} dari ${selectedRT}`,
+      });
 
-    setTransactions([newTransaction, ...transactions]);
-
-    toast({
-      title: "Penarikan Berhasil!",
-      description: `${selectedRT} berhasil menarik Rp ${amount.toLocaleString(
-        "id-ID"
-      )}`,
-    });
-
-    setWithdrawalAmount("");
-    setSelectedRT("");
-    setIsWithdrawDialogOpen(false);
+      setWithdrawalAmount("");
+      setSelectedRT("");
+      setIsWithdrawDialogOpen(false);
+    }
   };
 
   return (
@@ -363,42 +342,28 @@ export const Savings = () => {
                     className="flex items-center justify-between p-3 border-l-4 border-l-primary/20 bg-accent/20 rounded-r-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-full ${
-                          transaction.type === "deposit"
-                            ? "bg-success/10"
-                            : "bg-warning/10"
-                        }`}
-                      >
-                        {transaction.type === "deposit" ? (
-                          <ArrowUpRight className="h-4 w-4 text-success" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 text-warning" />
-                        )}
+                      <div className="p-2 rounded-full bg-success/10">
+                        <ArrowUpRight className="h-4 w-4 text-success" />
                       </div>
                       <div>
                         <p className="font-medium text-sm">{transaction.rt}</p>
                         <p className="text-xs text-muted-foreground">
-                          {transaction.description}
+                          Setoran {transaction.wasteTypeName} -{" "}
+                          {transaction.weight} kg
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(transaction.date).toLocaleString("id-ID")}
+                          {new Date(transaction.date).toLocaleDateString(
+                            "id-ID"
+                          )}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p
-                        className={`font-medium text-sm ${
-                          transaction.type === "deposit"
-                            ? "text-success"
-                            : "text-warning"
-                        }`}
-                      >
-                        {transaction.type === "deposit" ? "+" : "-"}Rp{" "}
-                        {transaction.amount.toLocaleString("id-ID")}
+                      <p className="font-medium text-sm text-success">
+                        +Rp {transaction.totalValue.toLocaleString("id-ID")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Saldo: Rp {transaction.balance.toLocaleString("id-ID")}
+                        @Rp {transaction.pricePerKg.toLocaleString("id-ID")}/kg
                       </p>
                     </div>
                   </div>

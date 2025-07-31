@@ -18,27 +18,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Users, Phone, MapPin } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Phone,
+  MapPin,
+  Loader2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface RT {
-  id: string;
-  nomor: string;
-  ketuaRT: string;
-  jumlahKK: number;
-  alamat: string;
-  kontak?: string;
-  saldo: number;
-  totalTransaksi: number;
-}
+import { useBankSampahData } from "@/hooks/useBankSampahData";
 
 export const RTManagement = () => {
   const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingRT, setEditingRT] = useState<RT | null>(null);
+  const { rtList, addRT, updateRT, deleteRT, isLoading } = useBankSampahData();
 
-  // Initialize empty RT list - to be populated from IndexedDB
-  const [rtList, setRTList] = useState<RT[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingRT, setEditingRT] = useState<any | null>(null);
 
   const [formData, setFormData] = useState({
     nomor: "",
@@ -65,37 +62,24 @@ export const RTManagement = () => {
       return;
     }
 
-    const newRT: RT = {
-      id: Date.now().toString(),
+    // Create RT data
+    const rtData = {
       nomor: formData.nomor,
       ketuaRT: formData.ketuaRT,
       jumlahKK: parseInt(formData.jumlahKK),
       alamat: formData.alamat,
-      kontak: formData.kontak,
-      saldo: 0,
-      totalTransaksi: 0,
+      kontak: formData.kontak || undefined,
     };
 
     if (editingRT) {
-      setRTList(
-        rtList.map((rt) =>
-          rt.id === editingRT.id
-            ? {
-                ...newRT,
-                id: editingRT.id,
-                saldo: editingRT.saldo,
-                totalTransaksi: editingRT.totalTransaksi,
-              }
-            : rt
-        )
-      );
+      updateRT(editingRT.id, rtData);
       toast({
         title: "Berhasil",
         description: "Data RT berhasil diperbarui",
       });
       setEditingRT(null);
     } else {
-      setRTList([...rtList, newRT]);
+      addRT(rtData);
       toast({
         title: "Berhasil",
         description: "RT baru berhasil ditambahkan",
@@ -112,7 +96,7 @@ export const RTManagement = () => {
     setIsAddDialogOpen(false);
   };
 
-  const handleEdit = (rt: RT) => {
+  const handleEdit = (rt: any) => {
     setEditingRT(rt);
     setFormData({
       nomor: rt.nomor,
@@ -125,12 +109,23 @@ export const RTManagement = () => {
   };
 
   const handleDelete = (id: string) => {
-    setRTList(rtList.filter((rt) => rt.id !== id));
+    deleteRT(id);
     toast({
       title: "Berhasil",
       description: "Data RT berhasil dihapus",
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Memuat data RT...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
