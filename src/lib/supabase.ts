@@ -88,7 +88,6 @@ export type Database = {
           date?: string;
           weight: number;
           price_per_kg: number;
-          total_value?: number;
           notes?: string;
         };
         Update: {

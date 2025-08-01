@@ -1,12 +1,15 @@
 # Fix Input Setoran - Real-time Sync Issue
 
 ## 🚨 **Masalah yang Ditemukan:**
+
 Menu input setoran berhasil input RT (sinkron real-time), tetapi saat input setoran, data tidak muncul baik di device yang menginput maupun di device lain.
 
 ## 🔍 **Root Cause Analysis:**
 
 ### 1. **Format Data Tidak Sesuai dengan Supabase**
+
 - `addTransaction` menggunakan format localStorage lama:
+
   ```typescript
   // ❌ Format lama (localStorage)
   {
@@ -30,16 +33,19 @@ Menu input setoran berhasil input RT (sinkron real-time), tetapi saat input seto
   ```
 
 ### 2. **RT Selection Menggunakan nomor bukan ID**
+
 - Select form menggunakan `value={rt.nomor}` (String)
 - Tapi `addTransaction` membutuhkan `rt_id` (UUID)
 
 ### 3. **Missing total_value di Database Type**
+
 - Tipe Insert tidak menyertakan `total_value`
 - Menyebabkan TypeScript error
 
 ## ✅ **Perbaikan yang Dilakukan:**
 
 ### 1. **Update Format Data addTransaction**
+
 ```typescript
 // Before
 addTransaction({
@@ -64,15 +70,17 @@ await addTransaction({
 ```
 
 ### 2. **Update RT Selection untuk Menggunakan ID**
+
 ```typescript
 // Before
 <SelectItem key={rt.id} value={rt.nomor}>
 
-// After  
+// After
 <SelectItem key={rt.id} value={rt.id}>
 ```
 
 ### 3. **Update Database Types**
+
 ```typescript
 // Added total_value to Insert type
 Insert: {
@@ -87,24 +95,29 @@ Insert: {
 ```
 
 ### 4. **Enhance addWasteTransaction Function**
+
 ```typescript
 // Auto-calculate total_value if not provided
 const dataToInsert = {
   ...transactionData,
-  total_value: transactionData.total_value || (transactionData.weight * transactionData.price_per_kg)
+  total_value:
+    transactionData.total_value ||
+    transactionData.weight * transactionData.price_per_kg,
 };
 ```
 
 ### 5. **Update Toast Message untuk Display RT yang Benar**
+
 ```typescript
 // Added selectedRT helper
 const selectedRT = rtList.find((rt) => rt.id === formData.rt);
 
 // Updated toast message
-description: `${selectedRT?.nomor} berhasil menyetor ${weight} kg...`
+description: `${selectedRT?.nomor} berhasil menyetor ${weight} kg...`;
 ```
 
 ## 🎯 **Hasil:**
+
 - ✅ Input setoran sekarang menggunakan format Supabase yang benar
 - ✅ RT selection menggunakan UUID ID bukan nomor
 - ✅ Data tersimpan dengan relationships yang tepat
@@ -113,6 +126,7 @@ description: `${selectedRT?.nomor} berhasil menyetor ${weight} kg...`
 - ✅ Build successful tanpa TypeScript error
 
 ## 🧪 **Testing Recommendation:**
+
 1. Test input setoran di device 1
 2. Verify data muncul real-time di device 2 & 3
 3. Check "Setoran Terbaru" section updates

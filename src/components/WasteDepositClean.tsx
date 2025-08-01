@@ -69,12 +69,18 @@ export const WasteDepositClean = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    console.log("🔍 Form validation - formData:", formData);
+    console.log("🔍 Form validation - weight:", weight);
+    console.log("🔍 Form validation - selectedRT:", selectedRT);
+    console.log("🔍 Form validation - selectedWasteType:", selectedWasteType);
+
     if (
       !formData.rt ||
       !formData.wasteType ||
       !formData.weight ||
       weight <= 0
     ) {
+      console.log("❌ Form validation failed");
       toast({
         title: "Error",
         description: "Mohon lengkapi semua field dengan benar",
@@ -85,15 +91,26 @@ export const WasteDepositClean = () => {
     }
 
     try {
-      // Save to Supabase using the hook
-      await addTransaction({
+      console.log("🚀 Attempting to save transaction:", {
         date: formData.date,
         rt_id: formData.rt,
         waste_type_id: formData.wasteType,
         weight: weight,
         price_per_kg: currentPrice,
-        total_value: totalValue,
+        // total_value will be calculated by database
       });
+
+      // Save to Supabase using the hook
+      const result = await addTransaction({
+        date: formData.date,
+        rt_id: formData.rt,
+        waste_type_id: formData.wasteType,
+        weight: weight,
+        price_per_kg: currentPrice,
+        // Don't send total_value - it's computed by database
+      });
+
+      console.log("✅ Transaction saved successfully:", result);
 
       toast({
         title: "Setoran Berhasil!",
@@ -111,10 +128,16 @@ export const WasteDepositClean = () => {
         date: new Date().toISOString().split("T")[0],
       });
     } catch (error) {
-      console.error("Error saving transaction:", error);
+      console.error("❌ Error saving transaction:", error);
+      
+      let errorMessage = "Gagal menyimpan setoran. Silakan coba lagi.";
+      if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: "Gagal menyimpan setoran. Silakan coba lagi.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

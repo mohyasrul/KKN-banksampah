@@ -201,11 +201,33 @@ export const useSupabaseData = () => {
   const addWasteTransaction = async (
     transactionData: Database["public"]["Tables"]["waste_transactions"]["Insert"]
   ) => {
-    // Calculate total_value if not provided
+    console.log("🔄 addWasteTransaction called with:", transactionData);
+    
+    // Test Supabase connection
+    console.log("🔗 Testing Supabase connection...");
+    const { data: testData, error: testError } = await supabase
+      .from("waste_transactions")
+      .select("id")
+      .limit(1);
+    
+    if (testError) {
+      console.error("❌ Supabase connection test failed:", testError);
+      throw new Error(`Database connection failed: ${testError.message}`);
+    }
+    
+    console.log("✅ Supabase connection OK, found", testData?.length || 0, "existing transactions");
+    
+    // Don't include total_value in insert - it's computed by database
     const dataToInsert = {
-      ...transactionData,
-      total_value: transactionData.total_value || (transactionData.weight * transactionData.price_per_kg)
+      rt_id: transactionData.rt_id,
+      waste_type_id: transactionData.waste_type_id,
+      date: transactionData.date,
+      weight: transactionData.weight,
+      price_per_kg: transactionData.price_per_kg,
+      notes: transactionData.notes,
     };
+
+    console.log("📝 Data to insert:", dataToInsert);
 
     const { data, error } = await supabase
       .from("waste_transactions")
@@ -213,10 +235,17 @@ export const useSupabaseData = () => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ Supabase insert error:", error);
+      throw error;
+    }
+
+    console.log("✅ Transaction inserted successfully:", data);
 
     // Update RT saldo dan total transaksi
-    const totalValue = dataToInsert.total_value;
+    const totalValue = data.total_value; // Use the computed value from database
+    console.log("🔄 Updating RT saldo for RT ID:", transactionData.rt_id, "Amount:", totalValue);
+    
     await updateRTSaldo(transactionData.rt_id, totalValue);
 
     await loadTransactions(); // Refresh data
