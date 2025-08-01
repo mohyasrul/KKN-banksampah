@@ -30,12 +30,12 @@ import {
   Target,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useBankSampahData } from "@/hooks/useBankSampahData";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const Savings = () => {
   const { toast } = useToast();
   const { rtList, transactions, getTransactionsByRT, updateRT } =
-    useBankSampahData();
+    useSupabaseData();
 
   const [selectedRT, setSelectedRT] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
@@ -45,7 +45,7 @@ export const Savings = () => {
   const rtSavings = rtList.map((rt) => {
     const rtTransactions = getTransactionsByRT(rt.nomor);
     const totalDeposits = rtTransactions.reduce(
-      (sum, t) => sum + t.totalValue,
+      (sum, t) => sum + t.total_value,
       0
     );
 
@@ -55,8 +55,8 @@ export const Savings = () => {
       balance: rt.saldo,
       totalDeposits: totalDeposits,
       totalWithdrawals: 0, // To be implemented later
-      transactionCount: rt.totalTransaksi,
-      lastTransaction: rtTransactions[0]?.createdAt || rt.createdAt,
+      transactionCount: rt.total_transaksi,
+      lastTransaction: rtTransactions[0]?.created_at || rt.created_at,
     };
   });
 
@@ -346,9 +346,11 @@ export const Savings = () => {
                         <ArrowUpRight className="h-4 w-4 text-success" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{transaction.rt}</p>
+                        <p className="font-medium text-sm">
+                          RT {transaction.rt?.nomor}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Setoran {transaction.wasteTypeName} -{" "}
+                          Setoran {transaction.waste_type?.name} -{" "}
                           {transaction.weight} kg
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -360,10 +362,11 @@ export const Savings = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-sm text-success">
-                        +Rp {transaction.totalValue.toLocaleString("id-ID")}
+                        +Rp {transaction.total_value.toLocaleString("id-ID")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        @Rp {transaction.pricePerKg.toLocaleString("id-ID")}/kg
+                        @Rp {transaction.price_per_kg.toLocaleString("id-ID")}
+                        /kg
                       </p>
                     </div>
                   </div>

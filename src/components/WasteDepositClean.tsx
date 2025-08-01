@@ -26,7 +26,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useBankSampahData } from "@/hooks/useBankSampahData";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const WasteDepositClean = () => {
   const { toast } = useToast();
@@ -39,7 +39,7 @@ export const WasteDepositClean = () => {
     getTodayStats,
     getRecentTransactions,
     isLoading,
-  } = useBankSampahData();
+  } = useSupabaseData();
 
   const [formData, setFormData] = useState({
     rt: "",
@@ -60,7 +60,7 @@ export const WasteDepositClean = () => {
   );
   const currentPrice = formData.customPrice
     ? parseFloat(formData.customPrice)
-    : selectedWasteType?.pricePerKg || 0;
+    : selectedWasteType?.price_per_kg || 0;
   const weight = parseFloat(formData.weight) || 0;
   const totalValue = weight * currentPrice;
 
@@ -190,7 +190,7 @@ export const WasteDepositClean = () => {
                       <SelectContent>
                         {rtList.map((rt) => (
                           <SelectItem key={rt.id} value={rt.nomor}>
-                            {rt.nomor} - {rt.ketuaRT}
+                            {rt.nomor} - {rt.ketua_rt}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -220,7 +220,8 @@ export const WasteDepositClean = () => {
                             <div className="flex justify-between items-center w-full">
                               <span>{type.name}</span>
                               <Badge variant="secondary" className="ml-2">
-                                Rp {type.pricePerKg.toLocaleString("id-ID")}/kg
+                                Rp {type.price_per_kg.toLocaleString("id-ID")}
+                                /kg
                               </Badge>
                             </div>
                           </SelectItem>
@@ -253,7 +254,7 @@ export const WasteDepositClean = () => {
                       type="number"
                       placeholder={
                         selectedWasteType
-                          ? `Default: Rp ${selectedWasteType.pricePerKg.toLocaleString(
+                          ? `Default: Rp ${selectedWasteType.price_per_kg.toLocaleString(
                               "id-ID"
                             )}`
                           : "Masukkan harga custom"
@@ -342,7 +343,7 @@ export const WasteDepositClean = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Jumlah RT</span>
-                <span className="font-medium">{todayStats.totalRT} RT</span>
+                <span className="font-medium">{todayStats.totalRTs} RT</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">
@@ -376,9 +377,11 @@ export const WasteDepositClean = () => {
                       className="flex justify-between items-start p-3 bg-accent/30 rounded-lg"
                     >
                       <div>
-                        <p className="font-medium text-sm">{transaction.rt}</p>
+                        <p className="font-medium text-sm">
+                          RT {transaction.rt?.nomor}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {transaction.weight} kg {transaction.wasteTypeName}
+                          {transaction.weight} kg {transaction.waste_type?.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(transaction.date).toLocaleDateString(
@@ -388,7 +391,7 @@ export const WasteDepositClean = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-sm text-green-600">
-                          +Rp {transaction.totalValue.toLocaleString("id-ID")}
+                          +Rp {transaction.total_value.toLocaleString("id-ID")}
                         </p>
                       </div>
                     </div>

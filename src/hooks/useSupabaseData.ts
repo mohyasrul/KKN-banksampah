@@ -283,6 +283,22 @@ export const useSupabaseData = () => {
     return wasteTypes.find((wt) => wt.id === id);
   };
 
+  // Get transactions by RT
+  const getTransactionsByRT = (rtNomor: string) => {
+    return transactions.filter((t) => t.rt?.nomor === rtNomor);
+  };
+
+  // Get transactions by date range
+  const getTransactionsByDate = (startDate: string, endDate?: string) => {
+    return transactions.filter((t) => {
+      const transactionDate = t.date;
+      if (endDate) {
+        return transactionDate >= startDate && transactionDate <= endDate;
+      }
+      return transactionDate === startDate;
+    });
+  };
+
   return {
     // Data
     rtList,
@@ -307,6 +323,11 @@ export const useSupabaseData = () => {
     // Transaction Methods
     addWasteTransaction,
     addSavingsTransaction,
+
+    // Backward compatibility aliases
+    addTransaction: addWasteTransaction,
+    getTransactionsByRT,
+    getTransactionsByDate,
 
     // Statistics
     getTodayStats,

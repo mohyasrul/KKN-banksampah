@@ -31,7 +31,7 @@ import {
   Target,
   Award,
 } from "lucide-react";
-import { useBankSampahData } from "@/hooks/useBankSampahData";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const Reports = () => {
   const {
@@ -40,7 +40,7 @@ export const Reports = () => {
     wasteTypes,
     getTransactionsByRT,
     getTransactionsByDate,
-  } = useBankSampahData();
+  } = useSupabaseData();
   const [dateRange, setDateRange] = useState({
     startDate: "2024-01-01",
     endDate: "2024-01-31",
@@ -56,13 +56,13 @@ export const Reports = () => {
 
   const monthlyStats = {
     totalDeposits: monthlyTransactions.reduce((sum, t) => sum + t.weight, 0),
-    totalValue: monthlyTransactions.reduce((sum, t) => sum + t.totalValue, 0),
-    activeRTs: new Set(monthlyTransactions.map((t) => t.rt)).size,
+    totalValue: monthlyTransactions.reduce((sum, t) => sum + t.total_value, 0),
+    activeRTs: new Set(monthlyTransactions.map((t) => t.rt?.nomor)).size,
     transactions: monthlyTransactions.length,
     averagePerRT:
       monthlyTransactions.length > 0
-        ? monthlyTransactions.reduce((sum, t) => sum + t.totalValue, 0) /
-          new Set(monthlyTransactions.map((t) => t.rt)).size
+        ? monthlyTransactions.reduce((sum, t) => sum + t.total_value, 0) /
+          new Set(monthlyTransactions.map((t) => t.rt?.nomor)).size
         : 0,
     growth: 0, // Could be calculated by comparing with previous month
   };
@@ -70,14 +70,15 @@ export const Reports = () => {
   // Calculate waste type distribution
   const wasteTypeStats = new Map();
   transactions.forEach((t) => {
-    const current = wasteTypeStats.get(t.wasteTypeName) || {
+    const wasteTypeName = t.waste_type?.name || "Unknown";
+    const current = wasteTypeStats.get(wasteTypeName) || {
       weight: 0,
       value: 0,
       count: 0,
     };
-    wasteTypeStats.set(t.wasteTypeName, {
+    wasteTypeStats.set(wasteTypeName, {
       weight: current.weight + t.weight,
-      value: current.value + t.totalValue,
+      value: current.value + t.total_value,
       count: current.count + 1,
     });
   });
@@ -102,7 +103,7 @@ export const Reports = () => {
     };
     rtStats.set(t.rt, {
       deposits: current.deposits + t.weight,
-      value: current.value + t.totalValue,
+      value: current.value + t.total_value,
       transactions: current.transactions + 1,
     });
   });
@@ -134,7 +135,7 @@ export const Reports = () => {
       const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
       dailyStats.set(t.date, {
         deposits: current.deposits + t.weight,
-        value: current.value + t.totalValue,
+        value: current.value + t.total_value,
       });
     }
   });

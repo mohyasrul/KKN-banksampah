@@ -28,11 +28,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useBankSampahData } from "@/hooks/useBankSampahData";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const RTManagement = () => {
   const { toast } = useToast();
-  const { rtList, addRT, updateRT, deleteRT, isLoading } = useBankSampahData();
+  const { rtList, addRT, updateRT, deleteRT, isLoading } = useSupabaseData();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRT, setEditingRT] = useState<any | null>(null);
@@ -65,8 +65,8 @@ export const RTManagement = () => {
     // Create RT data
     const rtData = {
       nomor: formData.nomor,
-      ketuaRT: formData.ketuaRT,
-      jumlahKK: parseInt(formData.jumlahKK),
+      ketua_rt: formData.ketuaRT,
+      jumlah_kk: parseInt(formData.jumlahKK),
       alamat: formData.alamat,
       kontak: formData.kontak || undefined,
     };
@@ -272,10 +272,10 @@ export const RTManagement = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg">{rt.nomor}</CardTitle>
-                    <CardDescription>{rt.ketuaRT}</CardDescription>
+                    <CardDescription>{rt.ketua_rt}</CardDescription>
                   </div>
                   <Badge variant="secondary">
-                    {rt.totalTransaksi} transaksi
+                    {rt.total_transaksi} transaksi
                   </Badge>
                 </div>
               </CardHeader>
@@ -283,7 +283,7 @@ export const RTManagement = () => {
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>{rt.jumlahKK} KK</span>
+                  <span>{rt.jumlah_kk} KK</span>
                 </div>
 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">

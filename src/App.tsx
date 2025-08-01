@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
-import { MigrationPrompt } from "@/components/MigrationPrompt";
+import { MigrationPrompt } from "./components/MigrationPrompt";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
