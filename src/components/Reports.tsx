@@ -34,6 +34,8 @@ import {
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const Reports = () => {
+  console.log("📊 Reports component rendering...");
+  
   const {
     rtList,
     transactions,
@@ -42,6 +44,13 @@ export const Reports = () => {
     getTransactionsByDate,
     isLoading,
   } = useSupabaseData();
+  
+  console.log("📊 Reports data:", {
+    isLoading,
+    rtListCount: rtList?.length || 0,
+    transactionsCount: transactions?.length || 0,
+    wasteTypesCount: wasteTypes?.length || 0,
+  });
   const [dateRange, setDateRange] = useState({
     startDate: "2024-01-01",
     endDate: "2024-01-31",
@@ -51,6 +60,7 @@ export const Reports = () => {
 
   // Show loading state while data is being loaded
   if (isLoading) {
+    console.log("📊 Reports showing loading state");
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
@@ -61,43 +71,47 @@ export const Reports = () => {
     );
   }
 
-  // Calculate real monthly stats from transactions
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-  const safeTransactions = Array.isArray(transactions) ? transactions : [];
-  const monthlyTransactions = safeTransactions.filter((t) =>
-    t.date.startsWith(currentMonth)
-  );
+  console.log("📊 Reports data loaded, calculating stats...");
 
-  const monthlyStats = {
-    totalDeposits: monthlyTransactions.reduce((sum, t) => sum + t.weight, 0),
-    totalValue: monthlyTransactions.reduce((sum, t) => sum + t.total_value, 0),
-    activeRTs: new Set(monthlyTransactions.map((t) => t.rt?.nomor)).size,
-    transactions: monthlyTransactions.length,
-    averagePerRT:
-      monthlyTransactions.length > 0
-        ? monthlyTransactions.reduce((sum, t) => sum + t.total_value, 0) /
-          new Set(monthlyTransactions.map((t) => t.rt?.nomor)).size
-        : 0,
-    growth: 0, // Could be calculated by comparing with previous month
-  };
+  try {
+    // Calculate real monthly stats from transactions
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    console.log("📊 Safe transactions count:", safeTransactions.length);
+    
+    const monthlyTransactions = safeTransactions.filter((t) =>
+      t && t.date && t.date.startsWith(currentMonth)
+    );
 
-  // Calculate waste type distribution
-  const wasteTypeStats = new Map();
-  safeTransactions.forEach((t) => {
-    const wasteTypeName = t.waste_type?.name || "Unknown";
-    const current = wasteTypeStats.get(wasteTypeName) || {
-      weight: 0,
-      value: 0,
-      count: 0,
-    };
-    wasteTypeStats.set(wasteTypeName, {
-      weight: current.weight + t.weight,
-      value: current.value + t.total_value,
-      count: current.count + 1,
+    const monthlyStats = {
+      totalDeposits: monthlyTransactions.reduce((sum, t) => sum + (t?.weight || 0), 0),
+      totalValue: monthlyTransactions.reduce((sum, t) => sum + (t?.total_value || 0), 0),
+      activeRTs: new Set(monthlyTransactions.map((t) => t?.rt?.nomor).filter(Boolean)).size,
+      transactions: monthlyTransactions.length,
+      averagePerRT:
+        monthlyTransactions.length > 0
+          ? monthlyTransactions.reduce((sum, t) => sum + (t?.total_value || 0), 0) /
+            new Set(monthlyTransactions.map((t) => t?.rt?.nomor).filter(Boolean)).size
+          : 0,
+      growth: 0, // Could be calculated by comparing with previous month
+    };    // Calculate waste type distribution
+    const wasteTypeStats = new Map();
+    safeTransactions.forEach((t) => {
+      if (!t) return;
+      const wasteTypeName = t.waste_type?.name || "Unknown";
+      const current = wasteTypeStats.get(wasteTypeName) || {
+        weight: 0,
+        value: 0,
+        count: 0,
+      };
+      wasteTypeStats.set(wasteTypeName, {
+        weight: current.weight + (t.weight || 0),
+        value: current.value + (t.total_value || 0),
+        count: current.count + 1,
+      });
     });
-  });
 
-  const totalWeight = safeTransactions.reduce((sum, t) => sum + t.weight, 0);
+    const totalWeight = safeTransactions.reduce((sum, t) => sum + (t?.weight || 0), 0);
   const wasteTypeData = Array.from(wasteTypeStats.entries())
     .map(([type, stats]) => ({
       type,
@@ -107,22 +121,23 @@ export const Reports = () => {
     }))
     .sort((a, b) => b.weight - a.weight);
 
-  // Calculate RT ranking
-  const rtStats = new Map();
-  safeTransactions.forEach((t) => {
-    const current = rtStats.get(t.rt) || {
-      deposits: 0,
-      value: 0,
-      transactions: 0,
-    };
-    rtStats.set(t.rt, {
-      deposits: current.deposits + t.weight,
-      value: current.value + t.total_value,
-      transactions: current.transactions + 1,
+    // Calculate RT ranking
+    const rtStats = new Map();
+    safeTransactions.forEach((t) => {
+      if (!t || !t.rt) return;
+      const current = rtStats.get(t.rt) || {
+        deposits: 0,
+        value: 0,
+        transactions: 0,
+      };
+      rtStats.set(t.rt, {
+        deposits: current.deposits + (t.weight || 0),
+        value: current.value + (t.total_value || 0),
+        transactions: current.transactions + 1,
+      });
     });
-  });
 
-  const rtRanking = Array.from(rtStats.entries())
+    const rtRanking = Array.from(rtStats.entries())
     .map(([rt, stats]) => ({
       rt,
       deposits: stats.deposits,
@@ -143,16 +158,17 @@ export const Reports = () => {
     return date.toISOString().split("T")[0];
   });
 
-  const dailyStats = new Map();
-  safeTransactions.forEach((t) => {
-    if (last7Days.includes(t.date)) {
-      const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
-      dailyStats.set(t.date, {
-        deposits: current.deposits + t.weight,
-        value: current.value + t.total_value,
-      });
-    }
-  });
+    const dailyStats = new Map();
+    safeTransactions.forEach((t) => {
+      if (!t || !t.date) return;
+      if (last7Days.includes(t.date)) {
+        const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
+        dailyStats.set(t.date, {
+          deposits: current.deposits + (t.weight || 0),
+          value: current.value + (t.total_value || 0),
+        });
+      }
+    });
 
   const dailyTrend = last7Days.map((date) => ({
     date: new Date(date).toLocaleDateString("id-ID", {
@@ -501,4 +517,24 @@ export const Reports = () => {
       </Card>
     </div>
   );
+  
+  } catch (error) {
+    console.error("❌ Error in Reports component:", error);
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 font-medium">Error memuat laporan</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            {error instanceof Error ? error.message : "Terjadi kesalahan tidak terduga"}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
