@@ -46,6 +46,8 @@ export default defineConfig(() => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        skipWaiting: false, // Wait for user confirmation
+        clientsClaim: false, // Don't immediately take control
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -59,6 +61,10 @@ export default defineConfig(() => ({
             },
           },
         ],
+      },
+      // Enable development service worker for testing
+      devOptions: {
+        enabled: true
       },
     }),
   ],
