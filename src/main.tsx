@@ -12,10 +12,10 @@ if ("serviceWorker" in navigator) {
           "PWA: Service Worker registered successfully",
           registration
         );
-        
+
         // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'SW_UPDATED') {
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data && event.data.type === "SW_UPDATED") {
             // Service worker has been updated, refresh the page
             window.location.reload();
           }

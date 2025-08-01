@@ -1,8 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RefreshCw, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export const UpdateNotification = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
@@ -11,8 +17,8 @@ export const UpdateNotification = () => {
 
   useEffect(() => {
     // Check for service worker updates
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
         // New service worker has taken control
         if (updateAvailable) {
           toast({
@@ -26,11 +32,14 @@ export const UpdateNotification = () => {
 
       // Listen for waiting service worker
       navigator.serviceWorker.ready.then((registration) => {
-        registration.addEventListener('updatefound', () => {
+        registration.addEventListener("updatefound", () => {
           const newWorker = registration.installing;
           if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            newWorker.addEventListener("statechange", () => {
+              if (
+                newWorker.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
                 // New version available
                 setUpdateAvailable(true);
                 setShowUpdatePrompt(true);
@@ -49,11 +58,11 @@ export const UpdateNotification = () => {
   }, [updateAvailable, toast]);
 
   const handleUpdate = () => {
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
         if (registration.waiting) {
           // Tell the waiting service worker to activate
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
           setUpdateAvailable(true);
           // Reload the page to get the new version
           setTimeout(() => {
@@ -96,7 +105,8 @@ export const UpdateNotification = () => {
             </Button>
           </div>
           <CardDescription className="text-xs text-blue-700">
-            Versi terbaru aplikasi Bank Sampah telah tersedia dengan fitur dan perbaikan baru
+            Versi terbaru aplikasi Bank Sampah telah tersedia dengan fitur dan
+            perbaikan baru
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">

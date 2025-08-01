@@ -64,7 +64,7 @@ export default defineConfig(() => ({
       },
       // Enable development service worker for testing
       devOptions: {
-        enabled: true
+        enabled: true,
       },
     }),
   ],

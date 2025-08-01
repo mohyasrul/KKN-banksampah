@@ -17,11 +17,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-import { useBankSampahData } from "@/hooks/useBankSampahData";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const Dashboard = () => {
   const { rtList, transactions, getTodayStats, getRecentTransactions } =
-    useBankSampahData();
+    useSupabaseData();
 
   // Calculate real-time statistics
   const todayStats = getTodayStats();
@@ -46,8 +46,8 @@ export const Dashboard = () => {
       description: "kg sampah",
       icon: Scale,
       trend:
-        todayStats.totalTransactions > 0
-          ? `${todayStats.totalTransactions} transaksi`
+        todayStats.transactionCount > 0
+          ? `${todayStats.transactionCount} transaksi`
           : "Belum ada data",
     },
     {
@@ -65,7 +65,7 @@ export const Dashboard = () => {
       trend:
         monthlyTransactions.length > 0
           ? `Rp ${monthlyTransactions
-              .reduce((sum, t) => sum + t.totalValue, 0)
+              .reduce((sum, t) => sum + t.total_value, 0)
               .toLocaleString("id-ID")}`
           : "Belum ada data",
     },
@@ -74,12 +74,12 @@ export const Dashboard = () => {
   // Get recent transactions (limit 5 for dashboard)
   const recentTransactions = getRecentTransactions(5).map((transaction) => ({
     id: transaction.id,
-    rt: transaction.rt,
+    rt: transaction.rt?.nomor || "N/A",
     type: "setoran", // All current transactions are deposits
     amount: `${transaction.weight} kg`,
-    value: `+Rp ${transaction.totalValue.toLocaleString("id-ID")}`,
+    value: `+Rp ${transaction.total_value.toLocaleString("id-ID")}`,
     date: new Date(transaction.date).toLocaleDateString("id-ID"),
-    wasteTypeName: transaction.wasteTypeName,
+    wasteTypeName: transaction.waste_type?.name || "N/A",
   }));
 
   // RT Savings overview (top 5 by balance)
@@ -87,7 +87,7 @@ export const Dashboard = () => {
     .map((rt) => ({
       rt: rt.nomor,
       balance: rt.saldo,
-      transactions: rt.totalTransaksi,
+      transactions: rt.total_transaksi,
     }))
     .sort((a, b) => b.balance - a.balance)
     .slice(0, 5);
