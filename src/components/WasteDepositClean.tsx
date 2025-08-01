@@ -58,6 +58,7 @@ export const WasteDepositClean = () => {
   const selectedWasteType = wasteTypes.find(
     (type) => type.id === formData.wasteType
   );
+  const selectedRT = rtList.find((rt) => rt.id === formData.rt);
   const currentPrice = formData.customPrice
     ? parseFloat(formData.customPrice)
     : selectedWasteType?.price_per_kg || 0;
@@ -84,20 +85,19 @@ export const WasteDepositClean = () => {
     }
 
     try {
-      // Save to localStorage using the hook
-      addTransaction({
+      // Save to Supabase using the hook
+      await addTransaction({
         date: formData.date,
-        rt: formData.rt,
-        wasteType: formData.wasteType,
-        wasteTypeName: selectedWasteType?.name || "",
+        rt_id: formData.rt,
+        waste_type_id: formData.wasteType,
         weight: weight,
-        pricePerKg: currentPrice,
-        totalValue: totalValue,
+        price_per_kg: currentPrice,
+        total_value: totalValue,
       });
 
       toast({
         title: "Setoran Berhasil!",
-        description: `${formData.rt} berhasil menyetor ${weight} kg ${
+        description: `${selectedRT?.nomor} berhasil menyetor ${weight} kg ${
           selectedWasteType?.name
         }. Tabungan bertambah Rp ${totalValue.toLocaleString("id-ID")}`,
       });
@@ -189,7 +189,7 @@ export const WasteDepositClean = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {rtList.map((rt) => (
-                          <SelectItem key={rt.id} value={rt.nomor}>
+                          <SelectItem key={rt.id} value={rt.id}>
                             {rt.nomor} - {rt.ketua_rt}
                           </SelectItem>
                         ))}

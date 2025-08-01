@@ -201,16 +201,22 @@ export const useSupabaseData = () => {
   const addWasteTransaction = async (
     transactionData: Database["public"]["Tables"]["waste_transactions"]["Insert"]
   ) => {
+    // Calculate total_value if not provided
+    const dataToInsert = {
+      ...transactionData,
+      total_value: transactionData.total_value || (transactionData.weight * transactionData.price_per_kg)
+    };
+
     const { data, error } = await supabase
       .from("waste_transactions")
-      .insert(transactionData)
+      .insert(dataToInsert)
       .select()
       .single();
 
     if (error) throw error;
 
     // Update RT saldo dan total transaksi
-    const totalValue = transactionData.weight * transactionData.price_per_kg;
+    const totalValue = dataToInsert.total_value;
     await updateRTSaldo(transactionData.rt_id, totalValue);
 
     await loadTransactions(); // Refresh data
