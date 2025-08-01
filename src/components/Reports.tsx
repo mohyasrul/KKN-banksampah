@@ -40,6 +40,7 @@ export const Reports = () => {
     wasteTypes,
     getTransactionsByRT,
     getTransactionsByDate,
+    isLoading,
   } = useSupabaseData();
   const [dateRange, setDateRange] = useState({
     startDate: "2024-01-01",
@@ -48,9 +49,22 @@ export const Reports = () => {
 
   const [reportType, setReportType] = useState("monthly");
 
+  // Show loading state while data is being loaded
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span>Memuat data laporan...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate real monthly stats from transactions
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-  const monthlyTransactions = transactions.filter((t) =>
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const monthlyTransactions = safeTransactions.filter((t) =>
     t.date.startsWith(currentMonth)
   );
 
@@ -69,7 +83,7 @@ export const Reports = () => {
 
   // Calculate waste type distribution
   const wasteTypeStats = new Map();
-  transactions.forEach((t) => {
+  safeTransactions.forEach((t) => {
     const wasteTypeName = t.waste_type?.name || "Unknown";
     const current = wasteTypeStats.get(wasteTypeName) || {
       weight: 0,
@@ -83,7 +97,7 @@ export const Reports = () => {
     });
   });
 
-  const totalWeight = transactions.reduce((sum, t) => sum + t.weight, 0);
+  const totalWeight = safeTransactions.reduce((sum, t) => sum + t.weight, 0);
   const wasteTypeData = Array.from(wasteTypeStats.entries())
     .map(([type, stats]) => ({
       type,
@@ -95,7 +109,7 @@ export const Reports = () => {
 
   // Calculate RT ranking
   const rtStats = new Map();
-  transactions.forEach((t) => {
+  safeTransactions.forEach((t) => {
     const current = rtStats.get(t.rt) || {
       deposits: 0,
       value: 0,
@@ -130,7 +144,7 @@ export const Reports = () => {
   });
 
   const dailyStats = new Map();
-  transactions.forEach((t) => {
+  safeTransactions.forEach((t) => {
     if (last7Days.includes(t.date)) {
       const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
       dailyStats.set(t.date, {

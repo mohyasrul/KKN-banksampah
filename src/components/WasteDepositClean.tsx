@@ -129,12 +129,12 @@ export const WasteDepositClean = () => {
       });
     } catch (error) {
       console.error("❌ Error saving transaction:", error);
-      
+
       let errorMessage = "Gagal menyimpan setoran. Silakan coba lagi.";
       if (error instanceof Error) {
         errorMessage = `Error: ${error.message}`;
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,

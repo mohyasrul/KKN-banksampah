@@ -202,21 +202,25 @@ export const useSupabaseData = () => {
     transactionData: Database["public"]["Tables"]["waste_transactions"]["Insert"]
   ) => {
     console.log("🔄 addWasteTransaction called with:", transactionData);
-    
+
     // Test Supabase connection
     console.log("🔗 Testing Supabase connection...");
     const { data: testData, error: testError } = await supabase
       .from("waste_transactions")
       .select("id")
       .limit(1);
-    
+
     if (testError) {
       console.error("❌ Supabase connection test failed:", testError);
       throw new Error(`Database connection failed: ${testError.message}`);
     }
-    
-    console.log("✅ Supabase connection OK, found", testData?.length || 0, "existing transactions");
-    
+
+    console.log(
+      "✅ Supabase connection OK, found",
+      testData?.length || 0,
+      "existing transactions"
+    );
+
     // Don't include total_value in insert - it's computed by database
     const dataToInsert = {
       rt_id: transactionData.rt_id,
@@ -244,8 +248,13 @@ export const useSupabaseData = () => {
 
     // Update RT saldo dan total transaksi
     const totalValue = data.total_value; // Use the computed value from database
-    console.log("🔄 Updating RT saldo for RT ID:", transactionData.rt_id, "Amount:", totalValue);
-    
+    console.log(
+      "🔄 Updating RT saldo for RT ID:",
+      transactionData.rt_id,
+      "Amount:",
+      totalValue
+    );
+
     await updateRTSaldo(transactionData.rt_id, totalValue);
 
     await loadTransactions(); // Refresh data
