@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -30,11 +30,17 @@ import {
   Smartphone,
   Target,
   Award,
+  Activity,
 } from "lucide-react";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 
 export const Reports = () => {
   console.log("📊 Reports component rendering...");
+  console.log("📱 Screen dimensions:", {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    isMobile: window.innerWidth < 768,
+  });
 
   const {
     rtList,
@@ -43,20 +49,87 @@ export const Reports = () => {
     getTransactionsByRT,
     getTransactionsByDate,
     isLoading,
+    error,
   } = useSupabaseData();
 
-  console.log("📊 Reports data:", {
-    isLoading,
-    rtListCount: rtList?.length || 0,
-    transactionsCount: transactions?.length || 0,
-    wasteTypesCount: wasteTypes?.length || 0,
-  });
   const [dateRange, setDateRange] = useState({
-    startDate: "2024-01-01",
-    endDate: "2024-01-31",
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
   });
 
   const [reportType, setReportType] = useState("monthly");
+  const [filteredData, setFilteredData] = useState({
+    transactions: [],
+    dateRange: null,
+    reportType: "monthly",
+  });
+
+  // Function to filter transactions based on selected criteria
+  const filterTransactions = () => {
+    console.log("📊 Filtering transactions with:", { dateRange, reportType });
+
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    let filtered = [];
+
+    switch (reportType) {
+      case "daily":
+        // For daily, use end date as the target date
+        filtered = getTransactionsByDate(dateRange.endDate);
+        break;
+      case "weekly":
+        // For weekly, get last 7 days from end date
+        const weekStart = new Date(dateRange.endDate);
+        weekStart.setDate(weekStart.getDate() - 6);
+        filtered = safeTransactions.filter((t) => {
+          const transactionDate = new Date(t.date);
+          const startDate = new Date(weekStart);
+          const endDate = new Date(dateRange.endDate);
+          return transactionDate >= startDate && transactionDate <= endDate;
+        });
+        break;
+      case "monthly":
+        // For monthly, use the month of end date
+        const targetMonth = dateRange.endDate.slice(0, 7); // YYYY-MM
+        filtered = safeTransactions.filter(
+          (t) => t && t.date && t.date.startsWith(targetMonth)
+        );
+        break;
+      case "yearly":
+        // For yearly, use the year of end date
+        const targetYear = dateRange.endDate.slice(0, 4); // YYYY
+        filtered = safeTransactions.filter(
+          (t) => t && t.date && t.date.startsWith(targetYear)
+        );
+        break;
+      default:
+        // Custom date range
+        filtered = safeTransactions.filter((t) => {
+          if (!t || !t.date) return false;
+          const transactionDate = t.date.split("T")[0];
+          return (
+            transactionDate >= dateRange.startDate &&
+            transactionDate <= dateRange.endDate
+          );
+        });
+    }
+
+    console.log("📊 Filtered transactions:", filtered.length);
+
+    setFilteredData({
+      transactions: filtered,
+      dateRange: { ...dateRange },
+      reportType,
+    });
+  };
+
+  // Initialize with current month data on first load
+  useEffect(() => {
+    if (transactions.length > 0) {
+      filterTransactions();
+    }
+  }, [transactions]);
 
   // Show loading state while data is being loaded
   if (isLoading) {
@@ -73,124 +146,136 @@ export const Reports = () => {
 
   console.log("📊 Reports data loaded, calculating stats...");
 
-  try {
-    // Calculate real monthly stats from transactions
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-    const safeTransactions = Array.isArray(transactions) ? transactions : [];
-    console.log("📊 Safe transactions count:", safeTransactions.length);
+  // Use filtered transactions or fallback to current month
+  const displayTransactions =
+    filteredData.transactions.length > 0
+      ? filteredData.transactions
+      : Array.isArray(transactions)
+      ? transactions.filter((t) => {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          return t && t.date && t.date.startsWith(currentMonth);
+        })
+      : [];
 
-    const monthlyTransactions = safeTransactions.filter(
-      (t) => t && t.date && t.date.startsWith(currentMonth)
-    );
+  console.log("📊 Display transactions count:", displayTransactions.length);
 
-    const monthlyStats = {
-      totalDeposits: monthlyTransactions.reduce(
-        (sum, t) => sum + (t?.weight || 0),
-        0
-      ),
-      totalValue: monthlyTransactions.reduce(
-        (sum, t) => sum + (t?.total_value || 0),
-        0
-      ),
-      activeRTs: new Set(
-        monthlyTransactions.map((t) => t?.rt?.nomor).filter(Boolean)
-      ).size,
-      transactions: monthlyTransactions.length,
-      averagePerRT:
-        monthlyTransactions.length > 0
-          ? monthlyTransactions.reduce(
-              (sum, t) => sum + (t?.total_value || 0),
-              0
-            ) /
-            new Set(
-              monthlyTransactions.map((t) => t?.rt?.nomor).filter(Boolean)
-            ).size
-          : 0,
-      growth: 0, // Could be calculated by comparing with previous month
-    }; // Calculate waste type distribution
-    const wasteTypeStats = new Map();
-    safeTransactions.forEach((t) => {
-      if (!t) return;
-      const wasteTypeName = t.waste_type?.name || "Unknown";
-      const current = wasteTypeStats.get(wasteTypeName) || {
-        weight: 0,
-        value: 0,
-        count: 0,
-      };
-      wasteTypeStats.set(wasteTypeName, {
-        weight: current.weight + (t.weight || 0),
-        value: current.value + (t.total_value || 0),
-        count: current.count + 1,
-      });
-    });
-
-    const totalWeight = safeTransactions.reduce(
-      (sum, t) => sum + (t?.weight || 0),
+  const reportStats = {
+    totalDeposits: displayTransactions.reduce(
+      (sum, t) => sum + (t.weight || 0),
       0
+    ),
+    totalValue: displayTransactions.reduce(
+      (sum, t) => sum + (t.total_value || 0),
+      0
+    ),
+    transactions: displayTransactions.length,
+    activeRTs: new Set(displayTransactions.map((t) => t.rt_id)).size,
+    growth: 12.5, // Mock growth percentage - could be calculated based on previous period
+    averagePerRT: rtList.length
+      ? displayTransactions.reduce((sum, t) => sum + (t.weight || 0), 0) /
+        rtList.length
+      : 0,
+  };
+
+  console.log("📊 Calculated report stats:", reportStats);
+
+  const rtData = rtList.map((rt) => {
+    if (!rt || typeof rt !== "object") {
+      console.warn("📊 Invalid RT object:", rt);
+      return null;
+    }
+
+    const rtTransactions = displayTransactions.filter(
+      (t) => t && t.rt_id === rt.id
     );
-    const wasteTypeData = Array.from(wasteTypeStats.entries())
-      .map(([type, stats]) => ({
-        type,
-        weight: stats.weight,
-        value: stats.value,
-        percentage: totalWeight > 0 ? (stats.weight / totalWeight) * 100 : 0,
-      }))
-      .sort((a, b) => b.weight - a.weight);
+    const rtStats = {
+      id: rt.id || "unknown",
+      rt_number: rt.nomor || "RT ?",
+      total_weight: rtTransactions.reduce((sum, t) => sum + (t.weight || 0), 0),
+      total_value: rtTransactions.reduce(
+        (sum, t) => sum + (t.total_value || 0),
+        0
+      ),
+      transaction_count: rtTransactions.length,
+    };
 
-    // Calculate RT ranking
-    const rtStats = new Map();
-    safeTransactions.forEach((t) => {
-      if (!t || !t.rt || !t.rt.nomor) return;
-      const rtKey = t.rt.nomor; // Use string as key, not object
-      const current = rtStats.get(rtKey) || {
-        deposits: 0,
-        value: 0,
-        transactions: 0,
-        rtData: t.rt, // Store RT data separately
-      };
-      rtStats.set(rtKey, {
-        deposits: current.deposits + (t.weight || 0),
-        value: current.value + (t.total_value || 0),
-        transactions: current.transactions + 1,
-        rtData: t.rt, // Keep RT object for display
+    console.log(`📊 RT ${rt.nomor} stats:`, rtStats);
+    return rtStats;
+  });
+
+  console.log("📊 RT data processed:", rtData.length);
+
+  const validRTData = rtData.filter(Boolean);
+
+  const wasteTypeData = wasteTypes.map((type) => {
+    if (!type || typeof type !== "object") {
+      console.warn("📊 Invalid waste type object:", type);
+      return null;
+    }
+
+    const typeTransactions = displayTransactions.filter(
+      (t) => t && t.waste_type_id === type.id
+    );
+    return {
+      type: type.name || "Unknown",
+      weight: typeTransactions.reduce((sum, t) => sum + (t.weight || 0), 0),
+      value: typeTransactions.reduce((sum, t) => sum + (t.total_value || 0), 0),
+      percentage: reportStats.totalDeposits
+        ? (
+            (typeTransactions.reduce((sum, t) => sum + (t.weight || 0), 0) /
+              reportStats.totalDeposits) *
+            100
+          ).toFixed(1)
+        : "0.0",
+    };
+  });
+
+  const validWasteTypeData = wasteTypeData.filter(Boolean);
+
+  // Sort RT by total weight for ranking
+  const rtRanking = validRTData
+    .sort((a, b) => (b?.total_weight || 0) - (a?.total_weight || 0))
+    .slice(0, 5);
+
+  console.log("📊 RT ranking:", rtRanking);
+
+  // Calculate daily trend based on the filtered period
+  const calculateDailyTrend = () => {
+    let days = [];
+
+    if (reportType === "weekly") {
+      // Last 7 days from end date
+      const endDate = new Date(dateRange.endDate);
+      days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(endDate);
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split("T")[0];
       });
-    });
-
-    const rtRanking = Array.from(rtStats.entries())
-      .map(([rtKey, stats]) => ({
-        rt: rtKey, // This is now string (rt.nomor)
-        rtData: stats.rtData, // This is the RT object {nomor, ketua_rt}
-        deposits: stats.deposits,
-        value: stats.value,
-        transactions: stats.transactions,
-        rank: 0,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .map((item, index) => ({
-        ...item,
-        rank: index + 1,
-      }));
-
-    // Calculate daily trend for last 7 days
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split("T")[0];
-    });
+    } else {
+      // Default to last 7 days for other report types
+      const today = new Date();
+      days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split("T")[0];
+      });
+    }
 
     const dailyStats = new Map();
-    safeTransactions.forEach((t) => {
-      if (!t || !t.date) return;
-      if (last7Days.includes(t.date)) {
-        const current = dailyStats.get(t.date) || { deposits: 0, value: 0 };
-        dailyStats.set(t.date, {
-          deposits: current.deposits + (t.weight || 0),
-          value: current.value + (t.total_value || 0),
-        });
+    displayTransactions.forEach((t) => {
+      if (t && t.date) {
+        const date = t.date.split("T")[0];
+        if (days.includes(date)) {
+          const current = dailyStats.get(date) || { deposits: 0, value: 0 };
+          dailyStats.set(date, {
+            deposits: current.deposits + (t.weight || 0),
+            value: current.value + (t.total_value || 0),
+          });
+        }
       }
     });
 
-    const dailyTrend = last7Days.map((date) => ({
+    return days.map((date) => ({
       date: new Date(date).toLocaleDateString("id-ID", {
         day: "2-digit",
         month: "2-digit",
@@ -198,370 +283,395 @@ export const Reports = () => {
       deposits: dailyStats.get(date)?.deposits || 0,
       value: dailyStats.get(date)?.value || 0,
     }));
+  };
 
-    const handleExport = (format: string) => {
-      // Export functionality - to be implemented with real data
-      console.log(`Exporting report in ${format} format`);
-      // In real implementation, this would generate and download the file
-    };
+  const dailyTrend = calculateDailyTrend();
 
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Laporan & Analitik</h2>
-            <p className="text-muted-foreground">
-              Analisis kinerja dan tren tabungan sampah
-            </p>
-          </div>
+  // Helper function to get period description
+  const getPeriodDescription = () => {
+    const startDate = new Date(dateRange.startDate).toLocaleDateString("id-ID");
+    const endDate = new Date(dateRange.endDate).toLocaleDateString("id-ID");
 
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => handleExport("pdf")}>
-              <FileText className="mr-2 h-4 w-4" />
-              Export PDF
-            </Button>
-            <Button variant="outline" onClick={() => handleExport("excel")}>
-              <Download className="mr-2 h-4 w-4" />
-              Export Excel
-            </Button>
+    switch (reportType) {
+      case "daily":
+        return `Harian - ${endDate}`;
+      case "weekly":
+        const weekStart = new Date(dateRange.endDate);
+        weekStart.setDate(weekStart.getDate() - 6);
+        return `Mingguan - ${weekStart.toLocaleDateString(
+          "id-ID"
+        )} s/d ${endDate}`;
+      case "monthly":
+        const month = new Date(dateRange.endDate).toLocaleDateString("id-ID", {
+          month: "long",
+          year: "numeric",
+        });
+        return `Bulanan - ${month}`;
+      case "yearly":
+        const year = new Date(dateRange.endDate).getFullYear();
+        return `Tahunan - ${year}`;
+      default:
+        return `${startDate} s/d ${endDate}`;
+    }
+  };
+
+  const handleExport = (format: string) => {
+    // Export functionality - to be implemented with real data
+    console.log(
+      `Exporting report in ${format} format for period: ${getPeriodDescription()}`
+    );
+    // In real implementation, this would generate and download the file
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold">Laporan & Analitik</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Analisis kinerja dan tren tabungan sampah
+          </p>
+          <div className="mt-1">
+            <Badge variant="outline" className="text-xs">
+              <Calendar className="mr-1 h-3 w-3" />
+              {getPeriodDescription()}
+            </Badge>
           </div>
         </div>
 
-        {/* Filters */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport("pdf")}
+            size="sm"
+            className="w-full sm:w-auto"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport("excel")}
+            size="sm"
+            className="w-full sm:w-auto"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filter Laporan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Jenis Laporan</Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="daily">Harian</SelectItem>
+                  <SelectItem value="weekly">Mingguan</SelectItem>
+                  <SelectItem value="monthly">Bulanan</SelectItem>
+                  <SelectItem value="yearly">Tahunan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Tanggal Mulai</Label>
+              <Input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, startDate: e.target.value })
+                }
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Tanggal Selesai</Label>
+              <Input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, endDate: e.target.value })
+                }
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button className="w-full" size="sm" onClick={filterTransactions}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Generate
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key Metrics */}
+      {displayTransactions.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Filter Laporan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Jenis Laporan</Label>
-                <Select value={reportType} onValueChange={setReportType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    <SelectItem value="daily">Harian</SelectItem>
-                    <SelectItem value="weekly">Mingguan</SelectItem>
-                    <SelectItem value="monthly">Bulanan</SelectItem>
-                    <SelectItem value="yearly">Tahunan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tanggal Mulai</Label>
-                <Input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, startDate: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tanggal Selesai</Label>
-                <Input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) =>
-                    setDateRange({ ...dateRange, endDate: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="flex items-end">
-                <Button className="w-full">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Generate
-                </Button>
-              </div>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                Tidak ada data untuk periode ini
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Tidak ditemukan transaksi untuk{" "}
+                {getPeriodDescription().toLowerCase()}. Coba ubah periode atau
+                jenis laporan.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReportType("monthly");
+                  setDateRange({
+                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split("T")[0],
+                    endDate: new Date().toISOString().split("T")[0],
+                  });
+                  setTimeout(filterTransactions, 100);
+                }}
+              >
+                Reset ke Bulan Ini
+              </Button>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <Card className="min-h-[120px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Setoran
+                </CardTitle>
+                <Scale className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {reportStats.totalDeposits} kg
+                </div>
+                <div className="flex items-center space-x-1 text-xs">
+                  <TrendingUp className="h-3 w-3 text-success" />
+                  <span className="text-success">+{reportStats.growth}%</span>
+                  <span className="text-muted-foreground">
+                    vs periode sebelumnya
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Setoran
-              </CardTitle>
-              <Scale className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {monthlyStats.totalDeposits} kg
-              </div>
-              <div className="flex items-center space-x-1 text-xs">
-                <TrendingUp className="h-3 w-3 text-success" />
-                <span className="text-success">+{monthlyStats.growth}%</span>
-                <span className="text-muted-foreground">vs bulan lalu</span>
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="min-h-[120px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Nilai
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl sm:text-2xl font-bold">
+                  Rp {reportStats.totalValue.toLocaleString("id-ID")}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Rata-rata Rp{" "}
+                  {reportStats.transactions > 0
+                    ? Math.round(
+                        reportStats.totalValue / reportStats.transactions
+                      ).toLocaleString("id-ID")
+                    : "0"}
+                  /transaksi
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Nilai</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                Rp {monthlyStats.totalValue.toLocaleString("id-ID")}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Rata-rata Rp{" "}
-                {Math.round(
-                  monthlyStats.totalValue / monthlyStats.transactions
-                ).toLocaleString("id-ID")}
-                /transaksi
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="min-h-[120px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">RT Aktif</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {reportStats.activeRTs}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  dari {rtList.length} RT terdaftar
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">RT Aktif</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{monthlyStats.activeRTs}</div>
-              <p className="text-xs text-muted-foreground">
-                dari {rtList.length} RT terdaftar
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="min-h-[120px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Transaksi
+                </CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {reportStats.transactions}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Rata-rata {Math.round(reportStats.averagePerRT)} kg/RT
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Transaksi
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {monthlyStats.transactions}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Rata-rata {Math.round(monthlyStats.averagePerRT)} kg/RT
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Waste Type Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5" />
-                <span>Distribusi Jenis Sampah</span>
-              </CardTitle>
-              <CardDescription>
-                Breakdown setoran berdasarkan jenis sampah
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {wasteTypeData.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Target className="h-12 w-12 mx-auto mb-4" />
-                    <p>Belum ada data jenis sampah</p>
-                    <p className="text-sm">
-                      Data akan muncul setelah ada setoran sampah
-                    </p>
-                  </div>
-                ) : (
-                  wasteTypeData.map((item, index) => (
-                    <div key={item.type} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{item.type}</span>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            {item.weight} kg
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Rp {item.value.toLocaleString("id-ID")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary rounded-full h-2 transition-all"
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {item.percentage}% dari total
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Waste Type Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="h-5 w-5" />
+                  <span>Distribusi Jenis Sampah</span>
+                </CardTitle>
+                <CardDescription>
+                  Breakdown setoran berdasarkan jenis sampah
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {validWasteTypeData.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Target className="h-12 w-12 mx-auto mb-4" />
+                      <p>Belum ada data jenis sampah</p>
+                      <p className="text-sm">
+                        Data akan muncul setelah ada setoran sampah
                       </p>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  ) : (
+                    validWasteTypeData.map((item, index) => (
+                      <div key={item.type} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">
+                            {item.type}
+                          </span>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">
+                              {item.weight} kg
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Rp {item.value.toLocaleString("id-ID")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary rounded-full h-2 transition-all"
+                            style={{ width: `${item.percentage}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {item.percentage}% dari total setoran
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* RT Ranking */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Award className="h-5 w-5" />
-                <span>Ranking RT</span>
-              </CardTitle>
-              <CardDescription>
-                Performa setoran per RT bulan ini
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {rtRanking.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Award className="h-12 w-12 mx-auto mb-4" />
-                    <p>Belum ada data ranking</p>
-                    <p className="text-sm">
-                      Ranking akan muncul setelah ada setoran dari RT
-                    </p>
-                  </div>
-                ) : (
-                  rtRanking.map((rt) => (
-                    <div
-                      key={rt.rt}
-                      className="flex items-center justify-between p-3 bg-accent/30 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Badge
-                          variant={rt.rank <= 3 ? "default" : "secondary"}
-                          className="w-8 h-8 rounded-full flex items-center justify-center"
-                        >
-                          {rt.rank}
-                        </Badge>
-                        <div>
-                          <p className="font-medium">{rt.rt}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {rt.transactions} transaksi
+            {/* RT Performance Ranking */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Award className="h-5 w-5" />
+                  <span>Ranking Kinerja RT</span>
+                </CardTitle>
+                <CardDescription>
+                  5 RT dengan setoran terbanyak bulan ini
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {rtRanking.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Award className="h-12 w-12 mx-auto mb-4" />
+                      <p>Belum ada data setoran RT</p>
+                      <p className="text-sm">
+                        Ranking akan muncul setelah ada setoran dari RT
+                      </p>
+                    </div>
+                  ) : (
+                    rtRanking.map((rt, index) => (
+                      <div
+                        key={rt.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+                              index === 0
+                                ? "bg-yellow-500 text-white"
+                                : index === 1
+                                ? "bg-gray-400 text-white"
+                                : index === 2
+                                ? "bg-orange-600 text-white"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{rt.rt_number}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {rt.transaction_count} transaksi
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{rt.total_weight} kg</p>
+                          <p className="text-sm text-muted-foreground">
+                            Rp {rt.total_value.toLocaleString("id-ID")}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-sm">{rt.deposits} kg</p>
-                        <p className="text-xs text-success">
-                          Rp {rt.value.toLocaleString("id-ID")}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Daily Trend Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
-              <span>Tren Setoran Harian</span>
-            </CardTitle>
-            <CardDescription>
-              Grafik setoran sampah 7 hari terakhir
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Simple bar chart representation */}
-              {dailyTrend.every((d) => d.deposits === 0) ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4" />
-                  <p>Belum ada data setoran 7 hari terakhir</p>
-                  <p className="text-sm">
-                    Grafik akan muncul setelah ada setoran sampah
-                  </p>
+                    ))
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-7 gap-2">
-                  {dailyTrend.map((day, index) => {
-                    const maxValue =
-                      Math.max(...dailyTrend.map((d) => d.deposits)) || 1;
-                    const height =
-                      maxValue > 0 ? (day.deposits / maxValue) * 100 : 0;
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
-                    return (
-                      <div key={`${day.date}-${index}`} className="text-center">
-                        <div className="bg-muted rounded-lg p-2 mb-2 h-32 flex items-end justify-center">
-                          <div
-                            className="bg-primary rounded-sm w-full transition-all"
-                            style={{
-                              height: `${height}%`,
-                              minHeight: day.deposits > 0 ? "8px" : "0px",
-                            }}
-                            title={`${
-                              day.deposits
-                            } kg - Rp ${day.value.toLocaleString("id-ID")}`}
-                          />
-                        </div>
-                        <p className="text-xs font-medium">{day.date}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {day.deposits} kg
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Share Options */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Bagikan Laporan</CardTitle>
-            <CardDescription>
-              Kirim laporan melalui berbagai platform
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-3">
-              <Button variant="outline" size="sm">
-                <Mail className="mr-2 h-4 w-4" />
-                Email
-              </Button>
-              <Button variant="outline" size="sm">
-                <Smartphone className="mr-2 h-4 w-4" />
-                WhatsApp
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Download Link
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  } catch (error) {
-    console.error("❌ Error in Reports component:", error);
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 font-medium">Error memuat laporan</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {error instanceof Error
-              ? error.message
-              : "Terjadi kesalahan tidak terduga"}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Muat Ulang
-          </button>
-        </div>
-      </div>
-    );
-  }
+      {/* Contact Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hubungi Administrator</CardTitle>
+          <CardDescription>
+            Untuk bantuan atau pertanyaan tentang laporan ini
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+            <Button variant="outline" size="sm">
+              <Mail className="mr-2 h-4 w-4" />
+              Email Admin
+            </Button>
+            <Button variant="outline" size="sm">
+              <Smartphone className="mr-2 h-4 w-4" />
+              WhatsApp
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" />
+              Download Link
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };

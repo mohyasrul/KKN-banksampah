@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -13,6 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Settings as SettingsIcon,
   Save,
   RefreshCw,
@@ -24,81 +32,162 @@ import {
   Upload,
   Trash2,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface WastePrice {
-  id: string;
-  name: string;
-  price: number;
-  unit: string;
-}
+import { useSettings } from "@/hooks/useSettings";
 
 export const Settings = () => {
   const { toast } = useToast();
-
-  // Waste prices settings
-  const [wastePrices, setWastePrices] = useState<WastePrice[]>([
-    { id: "plastik", name: "Plastik", price: 5000, unit: "kg" },
-    { id: "kertas", name: "Kertas", price: 3000, unit: "kg" },
-    { id: "logam", name: "Logam", price: 8000, unit: "kg" },
-    { id: "kaca", name: "Kaca", price: 2000, unit: "kg" },
-    { id: "kardus", name: "Kardus", price: 2500, unit: "kg" },
-  ]);
-
-  // App settings
-  const [appSettings, setAppSettings] = useState({
-    autoBackup: true,
-    notifications: true,
-    emailReports: false,
-    whatsappNotifications: true,
-    dataRetentionDays: 365,
-    rwName: "RW 05 Kelurahan Mawar",
-    contactPerson: "Budi Santoso",
-    contactPhone: "081234567890",
-    address: "Jl. Mawar Raya No. 123, Jakarta",
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [systemStats, setSystemStats] = useState({
+    totalRTs: 0,
+    totalTransactions: 0,
+    databaseSize: "0 KB",
+    version: "1.0.0",
+    status: "Loading...",
   });
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
-  const handlePriceUpdate = (id: string, newPrice: number) => {
-    setWastePrices(
-      wastePrices.map((item) =>
-        item.id === id ? { ...item, price: newPrice } : item
-      )
-    );
+  const {
+    wastePrices,
+    appSettings,
+    isLoading,
+    error,
+    updateWastePrice,
+    updateAppSettings,
+    saveSettings,
+    backupData,
+    restoreData,
+    resetData,
+    getSystemStats,
+    syncData,
+  } = useSettings();
+
+  // Load system stats on component mount
+  useEffect(() => {
+    getSystemStats().then(setSystemStats);
+  }, [getSystemStats]);
+
+  const handleSaveSettings = async () => {
+    const result = await saveSettings();
+    if (result.success) {
+      toast({
+        title: "Pengaturan Disimpan",
+        description: "Semua perubahan telah berhasil disimpan",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Gagal menyimpan pengaturan",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSaveSettings = () => {
-    // In real app, this would save to database/localStorage
-    toast({
-      title: "Pengaturan Disimpan",
-      description: "Semua perubahan telah berhasil disimpan",
-    });
-  };
-
-  const handleBackupData = () => {
-    // Backup functionality - to be implemented with IndexedDB export
-    toast({
-      title: "Backup Berhasil",
-      description: "Data telah di-backup ke file lokal",
-    });
+  const handleBackupData = async () => {
+    const result = await backupData();
+    if (result.success) {
+      toast({
+        title: "Backup Berhasil",
+        description: "Data telah di-backup ke file lokal",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Gagal membuat backup",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRestoreData = () => {
-    // Restore functionality - to be implemented with IndexedDB import
-    toast({
-      title: "Data Dipulihkan",
-      description: "Data berhasil dipulihkan dari backup",
-    });
+    fileInputRef.current?.click();
   };
 
-  const handleResetData = () => {
-    // Reset functionality - would need confirmation dialog in real app
-    toast({
-      title: "Data Direset",
-      description: "Semua data telah dikembalikan ke pengaturan awal",
-      variant: "destructive",
-    });
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const result = await restoreData(file);
+    if (result.success) {
+      toast({
+        title: "Data Dipulihkan",
+        description: "Data berhasil dipulihkan dari backup",
+      });
+      // Refresh system stats
+      getSystemStats().then(setSystemStats);
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Gagal memulihkan data",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleSyncData = async () => {
+    const result = await syncData();
+    if (result.success) {
+      toast({
+        title: "Sinkronisasi Berhasil",
+        description: "Data telah disinkronkan dengan database",
+      });
+      // Refresh system stats
+      getSystemStats().then(setSystemStats);
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Gagal sinkronisasi data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetData = async () => {
+    const result = await resetData();
+    if (result.success) {
+      toast({
+        title: "Data Direset",
+        description: "Semua data telah dikembalikan ke pengaturan awal",
+        variant: "destructive",
+      });
+      // Refresh system stats
+      getSystemStats().then(setSystemStats);
+      setIsResetDialogOpen(false);
+    } else {
+      toast({
+        title: "Error",
+        description: result.error || "Gagal mereset data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Memuat pengaturan...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
+          <h3 className="text-lg font-medium mb-2">Error Loading Settings</h3>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -139,7 +228,7 @@ export const Settings = () => {
                     type="number"
                     value={waste.price}
                     onChange={(e) =>
-                      handlePriceUpdate(waste.id, parseInt(e.target.value))
+                      updateWastePrice(waste.id, parseInt(e.target.value) || 0)
                     }
                     className="w-24 text-right"
                   />
@@ -168,9 +257,7 @@ export const Settings = () => {
               <Input
                 id="rw-name"
                 value={appSettings.rwName}
-                onChange={(e) =>
-                  setAppSettings({ ...appSettings, rwName: e.target.value })
-                }
+                onChange={(e) => updateAppSettings({ rwName: e.target.value })}
               />
             </div>
 
@@ -180,10 +267,7 @@ export const Settings = () => {
                 id="contact-person"
                 value={appSettings.contactPerson}
                 onChange={(e) =>
-                  setAppSettings({
-                    ...appSettings,
-                    contactPerson: e.target.value,
-                  })
+                  updateAppSettings({ contactPerson: e.target.value })
                 }
               />
             </div>
@@ -194,10 +278,7 @@ export const Settings = () => {
                 id="contact-phone"
                 value={appSettings.contactPhone}
                 onChange={(e) =>
-                  setAppSettings({
-                    ...appSettings,
-                    contactPhone: e.target.value,
-                  })
+                  updateAppSettings({ contactPhone: e.target.value })
                 }
               />
             </div>
@@ -207,9 +288,7 @@ export const Settings = () => {
               <Input
                 id="address"
                 value={appSettings.address}
-                onChange={(e) =>
-                  setAppSettings({ ...appSettings, address: e.target.value })
-                }
+                onChange={(e) => updateAppSettings({ address: e.target.value })}
               />
             </div>
           </CardContent>
@@ -238,7 +317,7 @@ export const Settings = () => {
                 <Switch
                   checked={appSettings.notifications}
                   onCheckedChange={(checked) =>
-                    setAppSettings({ ...appSettings, notifications: checked })
+                    updateAppSettings({ notifications: checked })
                   }
                 />
               </div>
@@ -253,7 +332,7 @@ export const Settings = () => {
                 <Switch
                   checked={appSettings.emailReports}
                   onCheckedChange={(checked) =>
-                    setAppSettings({ ...appSettings, emailReports: checked })
+                    updateAppSettings({ emailReports: checked })
                   }
                 />
               </div>
@@ -270,10 +349,7 @@ export const Settings = () => {
                 <Switch
                   checked={appSettings.whatsappNotifications}
                   onCheckedChange={(checked) =>
-                    setAppSettings({
-                      ...appSettings,
-                      whatsappNotifications: checked,
-                    })
+                    updateAppSettings({ whatsappNotifications: checked })
                   }
                 />
               </div>
@@ -288,7 +364,7 @@ export const Settings = () => {
                 <Switch
                   checked={appSettings.autoBackup}
                   onCheckedChange={(checked) =>
-                    setAppSettings({ ...appSettings, autoBackup: checked })
+                    updateAppSettings({ autoBackup: checked })
                   }
                 />
               </div>
@@ -328,19 +404,68 @@ export const Settings = () => {
               <span className="text-sm">Restore Data</span>
             </Button>
 
-            <Button variant="outline" className="flex flex-col h-20 space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            <Button
+              variant="outline"
+              onClick={handleSyncData}
+              className="flex flex-col h-20 space-y-2"
+            >
               <RefreshCw className="h-5 w-5" />
               <span className="text-sm">Sinkronisasi</span>
             </Button>
 
-            <Button
-              variant="destructive"
-              onClick={handleResetData}
-              className="flex flex-col h-20 space-y-2"
+            <Dialog
+              open={isResetDialogOpen}
+              onOpenChange={setIsResetDialogOpen}
             >
-              <Trash2 className="h-5 w-5" />
-              <span className="text-sm">Reset Data</span>
-            </Button>
+              <DialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="flex flex-col h-20 space-y-2"
+                >
+                  <Trash2 className="h-5 w-5" />
+                  <span className="text-sm">Reset Data</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <span>Konfirmasi Reset Data</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Apakah Anda yakin ingin mereset semua data? Tindakan ini
+                    akan:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Menghapus semua pengaturan kustom</li>
+                      <li>Mengembalikan harga sampah ke default</li>
+                      <li>Menghapus preferensi yang tersimpan</li>
+                    </ul>
+                    <p className="mt-2 font-medium text-destructive">
+                      Tindakan ini tidak dapat dibatalkan!
+                    </p>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex space-x-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsResetDialogOpen(false)}
+                  >
+                    Batal
+                  </Button>
+                  <Button variant="destructive" onClick={handleResetData}>
+                    Ya, Reset Data
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <Separator className="my-6" />
@@ -358,9 +483,8 @@ export const Settings = () => {
                   type="number"
                   value={appSettings.dataRetentionDays}
                   onChange={(e) =>
-                    setAppSettings({
-                      ...appSettings,
-                      dataRetentionDays: parseInt(e.target.value),
+                    updateAppSettings({
+                      dataRetentionDays: parseInt(e.target.value) || 365,
                     })
                   }
                   className="w-20"
@@ -384,34 +508,42 @@ export const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <p className="text-sm font-medium">Versi Aplikasi</p>
-              <Badge variant="secondary">v1.0.0</Badge>
+              <Badge variant="secondary">{systemStats.version}</Badge>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Database</p>
-              <Badge variant="outline">IndexedDB</Badge>
+              <Badge variant="outline">Supabase</Badge>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Status</p>
-              <Badge className="bg-success text-success-foreground">
-                Online
+              <Badge
+                className={
+                  systemStats.status === "Online"
+                    ? "bg-success text-success-foreground"
+                    : "bg-destructive"
+                }
+              >
+                {systemStats.status}
               </Badge>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Total RT</p>
-              <p className="text-2xl font-bold">12</p>
+              <p className="text-2xl font-bold">{systemStats.totalRTs}</p>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Total Transaksi</p>
-              <p className="text-2xl font-bold">247</p>
+              <p className="text-2xl font-bold">
+                {systemStats.totalTransactions}
+              </p>
             </div>
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Ukuran Database</p>
-              <p className="text-2xl font-bold">2.4 MB</p>
+              <p className="text-2xl font-bold">{systemStats.databaseSize}</p>
             </div>
           </div>
         </CardContent>

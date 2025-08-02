@@ -45,7 +45,7 @@ export const RTManagement = () => {
     kontak: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -62,58 +62,102 @@ export const RTManagement = () => {
       return;
     }
 
-    // Create RT data
-    const rtData = {
-      nomor: formData.nomor,
-      ketua_rt: formData.ketuaRT,
-      jumlah_kk: parseInt(formData.jumlahKK),
-      alamat: formData.alamat,
-      kontak: formData.kontak || undefined,
-    };
+    // Check if nomor RT already exists (except when editing the same RT)
+    const existingRT = rtList.find(
+      (rt) =>
+        rt.nomor.toLowerCase() === formData.nomor.toLowerCase() &&
+        rt.id !== editingRT?.id
+    );
 
-    if (editingRT) {
-      updateRT(editingRT.id, rtData);
+    if (existingRT) {
       toast({
-        title: "Berhasil",
-        description: "Data RT berhasil diperbarui",
+        title: "Error",
+        description: `RT dengan nomor ${formData.nomor} sudah terdaftar`,
+        variant: "destructive",
       });
-      setEditingRT(null);
-    } else {
-      addRT(rtData);
-      toast({
-        title: "Berhasil",
-        description: "RT baru berhasil ditambahkan",
-      });
+      return;
     }
 
-    setFormData({
-      nomor: "",
-      ketuaRT: "",
-      jumlahKK: "",
-      alamat: "",
-      kontak: "",
-    });
-    setIsAddDialogOpen(false);
+    try {
+      // Create RT data
+      const rtData = {
+        nomor: formData.nomor,
+        ketua_rt: formData.ketuaRT,
+        jumlah_kk: parseInt(formData.jumlahKK),
+        alamat: formData.alamat,
+        kontak: formData.kontak || undefined,
+      };
+
+      if (editingRT) {
+        await updateRT(editingRT.id, rtData);
+        toast({
+          title: "Berhasil",
+          description: "Data RT berhasil diperbarui",
+        });
+        setEditingRT(null);
+      } else {
+        await addRT(rtData);
+        toast({
+          title: "Berhasil",
+          description: "RT baru berhasil ditambahkan",
+        });
+      }
+
+      setFormData({
+        nomor: "",
+        ketuaRT: "",
+        jumlahKK: "",
+        alamat: "",
+        kontak: "",
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving RT:", error);
+      toast({
+        title: "Error",
+        description: editingRT
+          ? "Gagal memperbarui data RT"
+          : "Gagal menambahkan RT baru",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (rt: any) => {
     setEditingRT(rt);
     setFormData({
       nomor: rt.nomor,
-      ketuaRT: rt.ketuaRT,
-      jumlahKK: rt.jumlahKK.toString(),
+      ketuaRT: rt.ketua_rt,
+      jumlahKK: rt.jumlah_kk.toString(),
       alamat: rt.alamat,
       kontak: rt.kontak || "",
     });
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteRT(id);
-    toast({
-      title: "Berhasil",
-      description: "Data RT berhasil dihapus",
-    });
+  const handleDelete = async (id: string, rtNomor: string) => {
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus data ${rtNomor}? Tindakan ini tidak dapat dibatalkan.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteRT(id);
+      toast({
+        title: "Berhasil",
+        description: "Data RT berhasil dihapus",
+      });
+    } catch (error) {
+      console.error("Error deleting RT:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menghapus data RT",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -137,7 +181,22 @@ export const RTManagement = () => {
           </p>
         </div>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+              setEditingRT(null);
+              setFormData({
+                nomor: "",
+                ketuaRT: "",
+                jumlahKK: "",
+                alamat: "",
+                kontak: "",
+              });
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -319,7 +378,7 @@ export const RTManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(rt.id)}
+                    onClick={() => handleDelete(rt.id, rt.nomor)}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Hapus
