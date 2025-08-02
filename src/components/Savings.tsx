@@ -30,16 +30,21 @@ import {
   Target,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
+import { offlineDataManager } from "@/utils/offlineDataManager";
 
 export const Savings = () => {
   const { toast } = useToast();
-  const { rtList, transactions, getTransactionsByRT, updateRT } =
-    useSupabaseData();
+  const { rtList, transactions } = useOfflineSupabaseData();
 
   const [selectedRT, setSelectedRT] = useState("");
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
+
+  // Helper function to get transactions by RT
+  const getTransactionsByRT = (rtNomor: string) => {
+    return transactions.filter(t => t.rt?.nomor === rtNomor);
+  };
 
   // Calculate RT savings data from actual transactions
   const rtSavings = rtList.map((rt) => {
@@ -73,7 +78,7 @@ export const Savings = () => {
 
   const selectedRTData = rtSavings.find((rt) => rt.rt === selectedRT);
 
-  const handleWithdrawal = () => {
+    const handleWithdrawal = async () => {
     const amount = parseFloat(withdrawalAmount);
 
     if (!selectedRT || !amount || amount <= 0) {
@@ -85,7 +90,7 @@ export const Savings = () => {
       return;
     }
 
-    if (!selectedRTData || amount > selectedRTData.balance) {
+    if (!selectedRTData || selectedRTData.balance < amount) {
       toast({
         title: "Error",
         description: "Saldo tidak mencukupi untuk penarikan ini",
@@ -94,23 +99,32 @@ export const Savings = () => {
       return;
     }
 
-    // Update RT balance
-    const targetRT = rtList.find((rt) => rt.nomor === selectedRT);
-    if (targetRT) {
-      updateRT(targetRT.id, {
-        saldo: targetRT.saldo - amount,
-      });
+    try {
+      // Update RT balance
+      const targetRT = rtList.find((rt) => rt.nomor === selectedRT);
+      if (targetRT) {
+        await offlineDataManager.updateRT(targetRT.id, {
+          saldo: targetRT.saldo - amount,
+        });
 
+        toast({
+          title: "Penarikan Berhasil!",
+          description: `Berhasil menarik Rp ${amount.toLocaleString(
+            "id-ID"
+          )} dari ${selectedRT}`,
+        });
+
+        setWithdrawalAmount("");
+        setSelectedRT("");
+        setIsWithdrawDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error during withdrawal:', error);
       toast({
-        title: "Penarikan Berhasil!",
-        description: `Berhasil menarik Rp ${amount.toLocaleString(
-          "id-ID"
-        )} dari ${selectedRT}`,
+        title: "Error",
+        description: "Gagal melakukan penarikan. Silakan coba lagi.",
+        variant: "destructive",
       });
-
-      setWithdrawalAmount("");
-      setSelectedRT("");
-      setIsWithdrawDialogOpen(false);
     }
   };
 

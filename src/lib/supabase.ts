@@ -1,13 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
+// For development without Supabase setup
+const isDemoMode = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (isDemoMode) {
+  console.warn("🚧 Running in DEMO mode - Supabase env variables not found");
+  console.log("📝 Create .env.local file with your Supabase credentials for full functionality");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { isDemoMode };
 
 // Database types untuk TypeScript
 export type Database = {

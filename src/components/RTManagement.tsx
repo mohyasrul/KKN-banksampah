@@ -28,11 +28,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
+import { offlineDataManager } from "@/utils/offlineDataManager";
 
 export const RTManagement = () => {
   const { toast } = useToast();
-  const { rtList, addRT, updateRT, deleteRT, isLoading } = useSupabaseData();
+  const { rtList, isLoading } = useOfflineSupabaseData();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRT, setEditingRT] = useState<any | null>(null);
@@ -89,14 +90,14 @@ export const RTManagement = () => {
       };
 
       if (editingRT) {
-        await updateRT(editingRT.id, rtData);
+        await offlineDataManager.updateRT(editingRT.id, rtData);
         toast({
           title: "Berhasil",
           description: "Data RT berhasil diperbarui",
         });
         setEditingRT(null);
       } else {
-        await addRT(rtData);
+        await offlineDataManager.createRT(rtData);
         toast({
           title: "Berhasil",
           description: "RT baru berhasil ditambahkan",
@@ -145,7 +146,7 @@ export const RTManagement = () => {
     }
 
     try {
-      await deleteRT(id);
+      await offlineDataManager.deleteRT(id);
       toast({
         title: "Berhasil",
         description: "Data RT berhasil dihapus",

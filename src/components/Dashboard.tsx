@@ -12,70 +12,84 @@ import {
   Scale,
   Wallet,
   TrendingUp,
-  Plus,
-  Download,
-  ArrowUpRight,
-  ArrowDownRight,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export const Dashboard = () => {
-  const { rtList, transactions, getTodayStats, getRecentTransactions } =
-    useSupabaseData();
+  const { rtList, transactions, stats, isLoading, error } = useOfflineSupabaseData();
+  const { isOnline, pendingCount } = useOfflineSync();
 
-  // Calculate real-time statistics
-  const todayStats = getTodayStats();
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-  const monthlyTransactions = transactions.filter((t) =>
-    t.date.startsWith(currentMonth)
-  );
-  const totalSavings = rtList.reduce((sum, rt) => sum + rt.saldo, 0);
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800">Database Error</CardTitle>
+            <CardDescription className="text-red-600">
+              {error}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
-  // Dynamic stats with real data
-  const stats = [
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Dashboard stats
+  const dashboardStats = [
     {
       title: "Total RT",
-      value: rtList.length.toString(),
-      description: "RT terdaftar",
+      value: stats.totalRT,
+      description: "Rukun Tetangga terdaftar",
       icon: Users,
-      trend: rtList.length > 0 ? "Aktif" : "Belum ada data",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
     },
     {
-      title: "Setoran Hari Ini",
-      value: todayStats.totalWeight.toString(),
-      description: "kg sampah",
+      title: "Total Saldo",
+      value: `Rp ${stats.totalSaldo.toLocaleString("id-ID")}`,
+      description: "Saldo keseluruhan",
+      icon: Wallet, 
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Total Transaksi",
+      value: stats.totalTransaksi,
+      description: "Transaksi sampah",
       icon: Scale,
-      trend:
-        todayStats.transactionCount > 0
-          ? `${todayStats.transactionCount} transaksi`
-          : "Belum ada data",
+      color: "text-orange-600", 
+      bgColor: "bg-orange-50",
     },
     {
-      title: "Total Tabungan",
-      value: `Rp ${totalSavings.toLocaleString("id-ID")}`,
-      description: "saldo keseluruhan",
-      icon: Wallet,
-      trend: totalSavings > 0 ? "Tersimpan" : "Belum ada data",
-    },
-    {
-      title: "Transaksi Bulan Ini",
-      value: monthlyTransactions.length.toString(),
-      description: "setoran & penarikan",
+      title: "Total Setoran",  
+      value: `Rp ${stats.totalSetoran.toLocaleString("id-ID")}`,
+      description: "Nilai setoran sampah",
       icon: TrendingUp,
-      trend:
-        monthlyTransactions.length > 0
-          ? `Rp ${monthlyTransactions
-              .reduce((sum, t) => sum + t.total_value, 0)
-              .toLocaleString("id-ID")}`
-          : "Belum ada data",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
     },
   ];
 
-  // Get recent transactions (limit 5 for dashboard)
-  const recentTransactions = getRecentTransactions(5).map((transaction) => ({
+  // Recent transactions (limit 5)
+  const recentTransactions = transactions.slice(0, 5).map((transaction) => ({
     id: transaction.id,
-    rt: transaction.rt?.nomor || "N/A",
-    type: "setoran", // All current transactions are deposits
+    rt: transaction.rt?.nomor || "N/A", 
     amount: `${transaction.weight} kg`,
     value: `+Rp ${transaction.total_value.toLocaleString("id-ID")}`,
     date: new Date(transaction.date).toLocaleDateString("id-ID"),
@@ -94,155 +108,194 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Connection Status Info */}
+      <Card className={`${isOnline ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}`}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isOnline ? (
+                <>
+                  <Wifi className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800">Online Mode</p>
+                    <p className="text-sm text-green-600">Data tersinkron dengan server</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-5 w-5 text-orange-600" />
+                  <div>
+                    <p className="font-medium text-orange-800">Offline Mode</p>
+                    <p className="text-sm text-orange-600">Data tersimpan lokal</p>
+                  </div>
+                </>
+              )}
+            </div>
+            {pendingCount > 0 && (
+              <Badge variant="secondary" className="text-blue-600">
+                {pendingCount} data pending sync
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
+        {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card
-              key={stat.title}
-              className="hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stat.value}
+            <Card key={index} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    {stat.description && (
+                      <p className="text-xs text-muted-foreground">
+                        {stat.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
+                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.description}
-                </p>
-                <Badge variant="secondary" className="mt-2 text-xs">
-                  {stat.trend}
-                </Badge>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Aksi Cepat</CardTitle>
-            <CardDescription>Operasi yang sering digunakan</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full justify-start" size="lg">
-              <Plus className="mr-2 h-4 w-4" />
-              Input Setoran Sampah
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              size="lg"
-            >
-              <Users className="mr-2 h-4 w-4" />
-              Kelola Data RT
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              size="lg"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Unduh Laporan
-            </Button>
-          </CardContent>
-        </Card>
-
+      {/* Recent Activity & RT Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Transaksi Terbaru</CardTitle>
-            <CardDescription>Aktivitas terakhir</CardDescription>
+            <CardTitle className="flex items-center space-x-2">
+              <Scale className="h-5 w-5" />
+              <span>Transaksi Terbaru</span>
+            </CardTitle>
+            <CardDescription>5 transaksi sampah terakhir</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {recentTransactions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Belum ada transaksi</p>
-                  <p className="text-sm">
-                    Transaksi akan muncul di sini setelah ada setoran atau
-                    penarikan
-                  </p>
-                </div>
-              ) : (
-                recentTransactions.map((transaction) => (
+            {recentTransactions.length > 0 ? (
+              <div className="space-y-4">
+                {recentTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
                     className="flex items-center justify-between p-3 bg-accent/30 rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="p-1 rounded-full bg-success/10">
-                        <ArrowUpRight className="h-3 w-3 text-success" />
+                      <div className="bg-green-100 p-2 rounded-full">
+                        <Scale className="h-4 w-4 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{transaction.rt}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {transaction.wasteTypeName} - {transaction.date}
+                        <p className="font-medium">RT {transaction.rt}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {transaction.wasteTypeName} • {transaction.amount}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-sm">
-                        {transaction.amount}
-                      </p>
-                      <p className="text-xs text-success">
+                      <p className="text-sm font-medium text-green-600">
                         {transaction.value}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {transaction.date}
                       </p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Scale className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Belum ada transaksi</p>
+                <p className="text-sm">Mulai input setoran sampah untuk melihat data</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* RT Savings Overview */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Tabungan RT</CardTitle>
-            <CardDescription>Saldo per RT</CardDescription>
+            <CardTitle className="flex items-center space-x-2">
+              <Wallet className="h-5 w-5" />
+              <span>Saldo RT Tertinggi</span>
+            </CardTitle>
+            <CardDescription>5 RT dengan saldo terbesar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {rtSavings.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Belum ada data RT</p>
-                  <p className="text-sm">
-                    Tambahkan RT baru untuk melihat tabungan
-                  </p>
-                </div>
-              ) : (
-                rtSavings.map((rt) => (
+            {rtSavings.length > 0 ? (
+              <div className="space-y-4">
+                {rtSavings.map((rt, index) => (
                   <div
                     key={rt.rt}
                     className="flex items-center justify-between p-3 bg-accent/30 rounded-lg"
                   >
-                    <div>
-                      <p className="font-medium text-sm">{rt.rt}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {rt.transactions} transaksi
-                      </p>
+                    <div className="flex items-center space-x-3">
+                      <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center">
+                        {index + 1}
+                      </Badge>
+                      <div>
+                        <p className="font-medium">RT {rt.rt}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {rt.transactions} transaksi
+                        </p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-sm">
+                      <p className="font-medium">
                         Rp {rt.balance.toLocaleString("id-ID")}
                       </p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Belum ada data RT</p>
+                <p className="text-sm">Tambahkan RT untuk melihat saldo</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Aksi Cepat</CardTitle>
+          <CardDescription>
+            Akses fitur utama aplikasi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button variant="outline" className="h-auto py-4 flex flex-col space-y-2">
+              <Users className="h-6 w-6" />
+              <span className="text-sm">Kelola RT</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex flex-col space-y-2">
+              <Scale className="h-6 w-6" />
+              <span className="text-sm">Input Setoran</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex flex-col space-y-2">
+              <Wallet className="h-6 w-6" />
+              <span className="text-sm">Tabungan</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex flex-col space-y-2">
+              <TrendingUp className="h-6 w-6" />
+              <span className="text-sm">Laporan</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

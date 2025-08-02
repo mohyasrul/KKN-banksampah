@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { MigrationPrompt } from "./components/MigrationPrompt";
@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { isLoading, error } = useSupabaseData();
+  const { isLoading, error } = useOfflineSupabaseData();
 
   if (error) {
     return (

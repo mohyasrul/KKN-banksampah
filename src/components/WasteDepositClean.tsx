@@ -26,20 +26,29 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
+import { offlineDataManager } from "@/utils/offlineDataManager";
 
 export const WasteDepositClean = () => {
   const { toast } = useToast();
 
-  // Use persisted data hooks
+  // Use offline-first data hooks
   const {
     rtList,
     wasteTypes,
-    addTransaction,
-    getTodayStats,
-    getRecentTransactions,
     isLoading,
-  } = useSupabaseData();
+  } = useOfflineSupabaseData();
+
+  // Helper functions for stats
+  const getTodayStats = () => {
+    // This will be implemented in the offline manager
+    return { transactions: 0, totalWeight: 0, totalValue: 0, totalRTs: 0 };
+  };
+
+  const getRecentTransactions = (limit: number) => {
+    // This will be implemented in the offline manager
+    return [];
+  };
 
   const [formData, setFormData] = useState({
     rt: "",
@@ -100,14 +109,13 @@ export const WasteDepositClean = () => {
         // total_value will be calculated by database
       });
 
-      // Save to Supabase using the hook
-      const result = await addTransaction({
+      // Save transaction using offline data manager
+      const result = await offlineDataManager.createWasteTransaction({
         date: formData.date,
         rt_id: formData.rt,
         waste_type_id: formData.wasteType,
         weight: weight,
         price_per_kg: currentPrice,
-        // Don't send total_value - it's computed by database
       });
 
       console.log("✅ Transaction saved successfully:", result);

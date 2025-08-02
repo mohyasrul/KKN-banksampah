@@ -32,25 +32,28 @@ import {
   Award,
   Activity,
 } from "lucide-react";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
 
 export const Reports = () => {
-  console.log("📊 Reports component rendering...");
-  console.log("📱 Screen dimensions:", {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    isMobile: window.innerWidth < 768,
-  });
-
   const {
     rtList,
     transactions,
     wasteTypes,
-    getTransactionsByRT,
-    getTransactionsByDate,
     isLoading,
     error,
-  } = useSupabaseData();
+  } = useOfflineSupabaseData();
+
+  // Helper functions to replace the ones from useSupabaseData
+  const getTransactionsByRT = (rtNomor: string) => {
+    return transactions.filter(t => t.rt?.nomor === rtNomor);
+  };
+
+  const getTransactionsByDate = (startDate: string, endDate: string) => {
+    return transactions.filter(t => {
+      const transactionDate = t.date;
+      return transactionDate >= startDate && transactionDate <= endDate;
+    });
+  };
 
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -76,7 +79,7 @@ export const Reports = () => {
     switch (reportType) {
       case "daily":
         // For daily, use end date as the target date
-        filtered = getTransactionsByDate(dateRange.endDate);
+        filtered = getTransactionsByDate(dateRange.endDate, dateRange.endDate);
         break;
       case "weekly":
         // For weekly, get last 7 days from end date

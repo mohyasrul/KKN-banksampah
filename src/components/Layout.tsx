@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Leaf } from "lucide-react";
+import { SyncStatus, MiniSyncStatus } from "./SyncStatus";
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,15 +27,20 @@ export const Layout = ({ children }: LayoutProps) => {
                 </p>
               </div>
             </div>
-            <Badge
-              variant="secondary"
-              className="bg-primary-foreground/10 text-primary-foreground"
-            >
-              v0.1 beta
-            </Badge>
+            <div className="flex items-center space-x-4">
+              <MiniSyncStatus />
+              <Badge
+                variant="secondary"
+                className="bg-primary-foreground/10 text-primary-foreground"
+              >
+                v0.1 beta
+              </Badge>
+            </div>
           </div>
         </div>
       </header>
+
+      <SyncStatus />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
