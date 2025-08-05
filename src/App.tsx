@@ -7,6 +7,7 @@ import { useOfflineSupabaseData } from "@/hooks/useOfflineSupabaseData";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { MigrationPrompt } from "./components/MigrationPrompt";
+import { OfflineDetector } from "./components/OfflineDetector";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -46,12 +47,14 @@ const AppContent = () => {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <OfflineDetector>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </OfflineDetector>
   );
 };
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -79,107 +79,344 @@ export const Settings = () => {
     syncData,
   } = useSettings();
 
-  // Load system stats on component mount
-  useEffect(() => {
-    getSystemStats().then(setSystemStats);
+  // Load system stats on component mount with memoization
+  const memoizedGetSystemStats = useCallback(() => {
+    return getSystemStats();
   }, [getSystemStats]);
 
-  const handleSaveSettings = async () => {
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadStats = async () => {
+      try {
+        const stats = await memoizedGetSystemStats();
+        if (mounted) {
+          setSystemStats(stats);
+        }
+      } catch (error) {
+        console.error("Failed to load system stats:", error);
+      }
+    };
+
+    loadStats();
+
+    return () => {
+      mounted = false;
+    };
+  }, [memoizedGetSystemStats]);
+
+  const handleSaveSettings = useCallback(async () => {
     setIsSaving(true);
-    const result = await saveSettings();
-    if (result.success) {
-      setHasUnsavedChanges(false);
-      toast({
-        title: "✅ Pengaturan Disimpan",
-        description: "Semua perubahan telah berhasil disimpan",
-      });
-    } else {
+    try {
+      const result = await saveSettings();
+      if (result.success) {
+        setHasUnsavedChanges(false);
+        toast({
+          title: "✅ Pengaturan Disimpan",
+          description: "Semua perubahan telah berhasil disimpan",
+        });
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.error || "Gagal menyimpan pengaturan",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "❌ Error",
-        description: result.error || "Gagal menyimpan pengaturan",
+        description: "Terjadi kesalahan saat menyimpan",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [saveSettings, toast]);
+
+  const handleBackupData = useCallback(async () => {
+    try {
+      const result = await backupData();
+      if (result.success) {
+        toast({
+          title: "✅ Backup Berhasil",
+          description: "Data telah di-backup ke file lokal",
+        });
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.error || "Gagal membuat backup",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Terjadi kesalahan saat backup",
         variant: "destructive",
       });
     }
-    setIsSaving(false);
-  };
+  }, [backupData, toast]);
 
-  const handleBackupData = async () => {
-    const result = await backupData();
-    if (result.success) {
-      toast({
-        title: "✅ Backup Berhasil",
-        description: "Data telah di-backup ke file lokal",
-      });
-    } else {
-      toast({
-        title: "❌ Error",
-        description: result.error || "Gagal membuat backup",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRestoreData = () => {
+  const handleRestoreData = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
-  const handleFileSelect = async (
+  const handleFileSelect = useCallback(async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const result = await restoreData(file);
-    if (result.success) {
-      toast({
-        title: "✅ Data Dipulihkan",
-        description: "Data berhasil dipulihkan dari backup",
-      });
-      getSystemStats().then(setSystemStats);
-    } else {
+    try {
+      const result = await restoreData(file);
+      if (result.success) {
+        toast({
+          title: "✅ Data Dipulihkan",
+          description: "Data berhasil dipulihkan dari backup",
+        });
+        // Refresh system stats
+        const stats = await getSystemStats();
+        setSystemStats(stats);
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.error || "Gagal memulihkan data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "❌ Error",
-        description: result.error || "Gagal memulihkan data",
+        description: "Terjadi kesalahan saat restore",
         variant: "destructive",
       });
     }
-  };
+  }, [restoreData, getSystemStats, toast]);
 
-  const handleSyncData = async () => {
-    const result = await syncData();
-    if (result.success) {
-      toast({
-        title: "✅ Sinkronisasi Berhasil",
-        description: "Data telah disinkronkan dengan database",
-      });
-      getSystemStats().then(setSystemStats);
-    } else {
+  const handleSyncData = useCallback(async () => {
+    try {
+      const result = await syncData();
+      if (result.success) {
+        toast({
+          title: "✅ Sinkronisasi Berhasil",
+          description: "Data telah disinkronkan dengan database",
+        });
+        // Refresh system stats
+        const stats = await getSystemStats();
+        setSystemStats(stats);
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.error || "Gagal sinkronisasi data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "❌ Error",
-        description: result.error || "Gagal sinkronisasi data",
+        description: "Terjadi kesalahan saat sinkronisasi",
         variant: "destructive",
       });
     }
-  };
+  }, [syncData, getSystemStats, toast]);
 
-  const handleResetData = async () => {
-    const result = await resetData();
-    if (result.success) {
-      toast({
-        title: "⚠️ Data Direset",
-        description: "Semua data telah dikembalikan ke pengaturan awal",
-        variant: "destructive",
-      });
-      getSystemStats().then(setSystemStats);
-      setIsResetDialogOpen(false);
-    } else {
+  const handleResetData = useCallback(async () => {
+    try {
+      const result = await resetData();
+      if (result.success) {
+        toast({
+          title: "⚠️ Data Direset",
+          description: "Semua data telah dikembalikan ke pengaturan awal",
+          variant: "destructive",
+        });
+        // Refresh system stats
+        const stats = await getSystemStats();
+        setSystemStats(stats);
+        setIsResetDialogOpen(false);
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.error || "Gagal mereset data",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "❌ Error",
-        description: result.error || "Gagal mereset data",
+        description: "Terjadi kesalahan saat reset",
         variant: "destructive",
       });
     }
-  };
+  }, [resetData, getSystemStats, toast]);
+
+  const handleCancelChanges = useCallback(() => {
+    setHasUnsavedChanges(false);
+    window.location.reload();
+  }, []);
+
+  // Memoized waste price handlers
+  const handleWastePriceChange = useCallback((id: string, value: string) => {
+    const newPrice = parseInt(value) || 0;
+    updateWastePrice(id, newPrice);
+    setHasUnsavedChanges(true);
+  }, [updateWastePrice]);
+
+  // Memoized app settings handlers
+  const handleAppSettingChange = useCallback((setting: string, value: any) => {
+    updateAppSettings({ [setting]: value });
+    setHasUnsavedChanges(true);
+  }, [updateAppSettings]);
+
+  // Memoized components to prevent unnecessary re-renders
+  const WastePricesSection = useMemo(() => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <DollarSign className="h-5 w-5" />
+          <span>Pengaturan Harga Sampah</span>
+        </CardTitle>
+        <CardDescription>
+          Atur harga per kilogram untuk setiap jenis sampah. Perubahan akan berpengaruh pada transaksi baru.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {wastePrices.map((waste) => (
+          <div
+            key={waste.id}
+            className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-accent/50 hover:bg-accent/40 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">{waste.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  per {waste.unit}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Rp</span>
+              <Input
+                type="number"
+                value={waste.price}
+                onChange={(e) => handleWastePriceChange(waste.id, e.target.value)}
+                className="w-28 text-right font-medium"
+                min="0"
+              />
+            </div>
+          </div>
+        ))}
+        <div className="pt-4 border-t">
+          <Button 
+            onClick={handleSaveSettings} 
+            className="w-full" 
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Simpan Harga Sampah
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  ), [wastePrices, handleWastePriceChange, handleSaveSettings, isSaving]);
+
+  const SystemStatsSection = useMemo(() => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Shield className="h-5 w-5" />
+          <span>Informasi Sistem</span>
+        </CardTitle>
+        <CardDescription>
+          Status dan informasi teknis aplikasi
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Versi Aplikasi</p>
+            </div>
+            <Badge variant="secondary" className="text-sm">
+              v{systemStats.version}
+            </Badge>
+          </div>
+
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Database className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Database</p>
+            </div>
+            <Badge variant="outline" className="text-sm">
+              Supabase + IndexedDB
+            </Badge>
+          </div>
+
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              {systemStats.status === "Online" ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <X className="h-4 w-4 text-red-600" />
+              )}
+              <p className="text-sm font-medium">Status</p>
+            </div>
+            <Badge
+              className={
+                systemStats.status === "Online"
+                  ? "bg-green-100 text-green-800 hover:bg-green-100"
+                  : "bg-red-100 text-red-800 hover:bg-red-100"
+              }
+            >
+              {systemStats.status}
+            </Badge>
+          </div>
+
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Total RT</p>
+            </div>
+            <p className="text-2xl font-bold text-primary">
+              {systemStats.totalRTs}
+            </p>
+          </div>
+
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Database className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Total Transaksi</p>
+            </div>
+            <p className="text-2xl font-bold text-primary">
+              {systemStats.totalTransactions.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Ukuran Database</p>
+            </div>
+            <p className="text-2xl font-bold text-primary">
+              {systemStats.databaseSize}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  ), [systemStats]);
 
   if (isLoading) {
     return (
@@ -241,69 +478,7 @@ export const Settings = () => {
         </TabsList>
 
         <TabsContent value="prices" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5" />
-                <span>Pengaturan Harga Sampah</span>
-              </CardTitle>
-              <CardDescription>
-                Atur harga per kilogram untuk setiap jenis sampah. Perubahan akan berpengaruh pada transaksi baru.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {wastePrices.map((waste) => (
-                <div
-                  key={waste.id}
-                  className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-accent/50 hover:bg-accent/40 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{waste.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        per {waste.unit}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">Rp</span>
-                    <Input
-                      type="number"
-                      value={waste.price}
-                      onChange={(e) => {
-                        updateWastePrice(waste.id, parseInt(e.target.value) || 0);
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="w-28 text-right font-medium"
-                      min="0"
-                    />
-                  </div>
-                </div>
-              ))}
-              <div className="pt-4 border-t">
-                <Button 
-                  onClick={handleSaveSettings} 
-                  className="w-full" 
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Simpan Harga Sampah
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {WastePricesSection}
         </TabsContent>
 
         <TabsContent value="general" className="space-y-6">
@@ -325,10 +500,7 @@ export const Settings = () => {
                   <Input
                     id="rw-name"
                     value={appSettings.rwName}
-                    onChange={(e) => {
-                      updateAppSettings({ rwName: e.target.value });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onChange={(e) => handleAppSettingChange('rwName', e.target.value)}
                     placeholder="Contoh: RW 10 Kelurahan Sukamaju"
                   />
                 </div>
@@ -341,10 +513,7 @@ export const Settings = () => {
                   <Input
                     id="contact-person"
                     value={appSettings.contactPerson}
-                    onChange={(e) => {
-                      updateAppSettings({ contactPerson: e.target.value });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onChange={(e) => handleAppSettingChange('contactPerson', e.target.value)}
                     placeholder="Nama lengkap penanggung jawab"
                   />
                 </div>
@@ -357,10 +526,7 @@ export const Settings = () => {
                   <Input
                     id="contact-phone"
                     value={appSettings.contactPhone}
-                    onChange={(e) => {
-                      updateAppSettings({ contactPhone: e.target.value });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onChange={(e) => handleAppSettingChange('contactPhone', e.target.value)}
                     placeholder="08123456789"
                   />
                 </div>
@@ -373,10 +539,7 @@ export const Settings = () => {
                   <Input
                     id="address"
                     value={appSettings.address}
-                    onChange={(e) => {
-                      updateAppSettings({ address: e.target.value });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onChange={(e) => handleAppSettingChange('address', e.target.value)}
                     placeholder="Alamat lengkap RW"
                   />
                 </div>
@@ -404,10 +567,7 @@ export const Settings = () => {
                   </div>
                   <Switch
                     checked={appSettings.notifications}
-                    onCheckedChange={(checked) => {
-                      updateAppSettings({ notifications: checked });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onCheckedChange={(checked) => handleAppSettingChange('notifications', checked)}
                   />
                 </div>
 
@@ -423,10 +583,7 @@ export const Settings = () => {
                   </div>
                   <Switch
                     checked={appSettings.emailReports}
-                    onCheckedChange={(checked) => {
-                      updateAppSettings({ emailReports: checked });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onCheckedChange={(checked) => handleAppSettingChange('emailReports', checked)}
                   />
                 </div>
 
@@ -442,10 +599,7 @@ export const Settings = () => {
                   </div>
                   <Switch
                     checked={appSettings.whatsappNotifications}
-                    onCheckedChange={(checked) => {
-                      updateAppSettings({ whatsappNotifications: checked });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onCheckedChange={(checked) => handleAppSettingChange('whatsappNotifications', checked)}
                   />
                 </div>
 
@@ -461,10 +615,7 @@ export const Settings = () => {
                   </div>
                   <Switch
                     checked={appSettings.autoBackup}
-                    onCheckedChange={(checked) => {
-                      updateAppSettings({ autoBackup: checked });
-                      setHasUnsavedChanges(true);
-                    }}
+                    onCheckedChange={(checked) => handleAppSettingChange('autoBackup', checked)}
                   />
                 </div>
 
@@ -481,12 +632,7 @@ export const Settings = () => {
                     <Input
                       type="number"
                       value={appSettings.dataRetentionDays}
-                      onChange={(e) => {
-                        updateAppSettings({
-                          dataRetentionDays: parseInt(e.target.value) || 365,
-                        });
-                        setHasUnsavedChanges(true);
-                      }}
+                      onChange={(e) => handleAppSettingChange('dataRetentionDays', parseInt(e.target.value) || 365)}
                       className="w-20"
                       min="30"
                       max="999"
@@ -602,90 +748,7 @@ export const Settings = () => {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Informasi Sistem</span>
-              </CardTitle>
-              <CardDescription>
-                Status dan informasi teknis aplikasi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-medium">Versi Aplikasi</p>
-                  </div>
-                  <Badge variant="secondary" className="text-sm">
-                    v{systemStats.version}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Database className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-medium">Database</p>
-                  </div>
-                  <Badge variant="outline" className="text-sm">
-                    Supabase + IndexedDB
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    {systemStats.status === "Online" ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-red-600" />
-                    )}
-                    <p className="text-sm font-medium">Status</p>
-                  </div>
-                  <Badge
-                    className={
-                      systemStats.status === "Online"
-                        ? "bg-green-100 text-green-800 hover:bg-green-100"
-                        : "bg-red-100 text-red-800 hover:bg-red-100"
-                    }
-                  >
-                    {systemStats.status}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-medium">Total RT</p>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">
-                    {systemStats.totalRTs}
-                  </p>
-                </div>
-
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Database className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-medium">Total Transaksi</p>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">
-                    {systemStats.totalTransactions.toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="space-y-3 p-4 bg-accent/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <p className="text-sm font-medium">Ukuran Database</p>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">
-                    {systemStats.databaseSize}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {SystemStatsSection}
         </TabsContent>
       </Tabs>
 
@@ -695,7 +758,7 @@ export const Settings = () => {
           <div className="flex space-x-4 p-4 bg-background border rounded-lg shadow-lg">
             <Button 
               variant="outline" 
-              onClick={() => window.location.reload()}
+              onClick={handleCancelChanges}
             >
               <X className="mr-2 h-4 w-4" />
               Batal

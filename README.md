@@ -1,139 +1,51 @@
-# 🏦 Bank Sampah RW 10 - Dokumentasi Lengkap
+# 🏦 Bank Sampah RW 10 - Aplikasi PWA
 
-## 📋 Deskripsi Proyek
+## 🌟 Overview
 
-Aplikasi web Progressive Web App (PWA) untuk pengelolaan bank sampah di RW 10 Desa Cidatar. Aplikasi ini dirancang mobile-first dengan kemampuan offline dan penyimpanan data lokal menggunakan localStorage.
+Aplikasi Progressive Web App (PWA) untuk pengelolaan Bank Sampah RW 10 Desa Cidatar. Dibangun dengan React TypeScript dan dirancang mobile-first dengan kemampuan offline penuh, mendukung penyimpanan data lokal dan sinkronisasi dengan Supabase.
 
-## 🛠️ Teknologi Stack
+## ✨ Fitur Utama
+
+- 📱 **Progressive Web App** - Dapat diinstall di mobile dan desktop
+- 🔄 **Offline First** - Berfungsi tanpa koneksi internet
+- 💾 **Dual Storage** - localStorage untuk offline, Supabase untuk sync
+- 📊 **Dashboard Real-time** - Statistik dan laporan lengkap
+- 🏠 **Manajemen RT** - CRUD data RT dengan validasi
+- ♻️ **Setoran Sampah** - Input setoran dengan kalkulasi otomatis
+- 💰 **Tabungan** - Manajemen saldo dan penarikan
+- 📈 **Laporan** - Analytics dan export data
+- 🔄 **Auto Sync** - Sinkronisasi otomatis saat online
+
+## 🛠️ Tech Stack
 
 - **Frontend**: React 18.3.1 + TypeScript
-- **Build Tool**: Vite 5.4.19
-- **UI Framework**: Tailwind CSS + Radix UI Components
-- **State Management**: React Hooks (useState, useEffect)
-- **Data Persistence**: localStorage dengan custom hooks
-- **Package Manager**: npm
-- **Development**: ESLint + TypeScript configs
+- **Build Tool**: Vite 5.4.1
+- **UI Framework**: Tailwind CSS + Radix UI
+- **Database**: Supabase + Dexie (IndexedDB)
+- **PWA**: Workbox + Vite PWA Plugin
+- **State Management**: TanStack Query + React Hooks
+- **Forms**: React Hook Form + Zod
+- **Charts**: Recharts
 
-## 🏗️ Arsitektur Application
-
-### Struktur Folder
-```
-src/
-├── components/           # Komponen React utama
-│   ├── ui/              # UI components dari Radix
-│   ├── Dashboard.tsx    # Dashboard utama dengan statistik
-│   ├── Layout.tsx       # Layout wrapper aplikasi
-│   ├── Navigation.tsx   # Komponen navigasi
-│   ├── Reports.tsx      # Laporan dan analytics
-│   ├── RTManagement.tsx # Manajemen data RT
-│   ├── Savings.tsx      # Manajemen tabungan
-│   ├── Settings.tsx     # Pengaturan aplikasi
-│   └── WasteDeposit.tsx # Form setoran sampah
-├── hooks/               # Custom React hooks
-│   ├── useBankSampahData.ts # Hook utama data management
-│   ├── useDatabase.mock.ts  # Mock database initialization
-│   └── use-mobile.tsx   # Hook untuk mobile detection
-├── lib/                 # Utility functions
-│   └── utils.ts         # Utility functions (cn classname merger)
-└── pages/               # Page components
-    ├── Index.tsx        # Halaman utama
-    └── NotFound.tsx     # 404 page
-```
-
-## 💾 Sistem Data Management
-
-### useBankSampahData Hook
-Hook utama yang mengelola semua data aplikasi dengan localStorage:
-
-**Data Structure:**
-```typescript
-interface RT {
-  id: string;
-  name: string;
-  leader: string;
-  households: number;
-  address: string;
-  balance: number;
-}
-
-interface Transaction {
-  id: string;
-  rtId: string;
-  rtName: string;
-  type: 'deposit' | 'withdrawal';
-  weight: number;
-  amount: number;
-  date: string;
-  description?: string;
-}
-```
-
-**Key Functions:**
-- `addRT()` - Tambah RT baru
-- `updateRT()` - Update data RT
-- `deleteRT()` - Hapus RT
-- `addTransaction()` - Tambah transaksi setoran
-- `addWithdrawal()` - Tambah penarikan
-- `getStatistics()` - Hitung statistik real-time
-
-### Data Persistence
-- **Storage**: localStorage browser
-- **Key**: `bankSampahData`
-- **Auto-save**: Setiap perubahan data otomatis tersimpan
-- **Data Recovery**: Data bertahan setelah browser restart
-
-## 🔄 Fitur Utama
-
-### 1. Dashboard
-- **Real-time Statistics**: Total RT, saldo, transaksi hari ini
-- **Recent Transactions**: 5 transaksi terakhir
-- **RT Overview**: Daftar RT dengan saldo masing-masing
-- **Quick Actions**: Akses cepat ke fitur utama
-
-### 2. Manajemen RT
-- **CRUD Operations**: Create, Read, Update, Delete RT
-- **Data Validation**: Validasi nama RT unik
-- **Auto-numbering**: Otomatis generate ID RT
-- **Balance Tracking**: Lacak saldo setiap RT
-
-### 3. Setoran Sampah
-- **Weight Input**: Input berat sampah (kg)
-- **Auto Calculation**: Hitung nilai otomatis (Rp 2,000/kg)
-- **RT Selection**: Pilih RT pengirim
-- **Balance Update**: Update saldo RT otomatis
-- **Transaction Log**: Simpan riwayat setoran
-
-### 4. Tabungan & Penarikan
-- **Balance Display**: Tampil saldo setiap RT
-- **Withdrawal Form**: Form penarikan dengan validasi
-- **Balance Validation**: Cek saldo mencukupi
-- **Transaction History**: Riwayat penarikan
-
-### 5. Laporan
-- **Transaction Summary**: Ringkasan transaksi
-- **RT Performance**: Performa setoran per RT
-- **Date Filtering**: Filter berdasarkan tanggal
-- **Export Data**: Export ke format yang bisa dibaca
-
-### 6. Settings
-- **App Configuration**: Pengaturan aplikasi
-- **Data Management**: Backup/restore data
-- **System Information**: Info versi dan status
-
-## 🚀 Cara Menjalankan
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ 
 - npm atau yarn
 
 ### Installation
+
 ```bash
 # Clone repository
 git clone <repository-url>
-cd rw-tabungan-hijau
+cd KKN-banksampah
 
 # Install dependencies
 npm install
+
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local dengan Supabase credentials
 
 # Run development server
 npm run dev
@@ -145,121 +57,275 @@ npm run build
 npm run preview
 ```
 
-### Environment Setup
-Aplikasi tidak memerlukan environment variables khusus karena menggunakan localStorage.
+### Environment Variables
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## 🧪 Development & Testing
+## 📁 Struktur Proyek
 
-### Code Quality
-- **TypeScript**: Strict type checking
-- **ESLint**: Code linting dengan rules modern
-- **Prettier**: Code formatting (opsional)
+```
+src/
+├── components/           # React components
+│   ├── ui/              # Radix UI components
+│   ├── Dashboard.tsx    # Dashboard dengan statistik
+│   ├── Navigation.tsx   # Navigasi aplikasi
+│   ├── Reports.tsx      # Laporan dan analytics
+│   ├── RTManagement.tsx # Manajemen data RT
+│   ├── Savings.tsx      # Manajemen tabungan
+│   ├── Settings.tsx     # Pengaturan aplikasi
+│   ├── SyncStatus.tsx   # Status sinkronisasi
+│   └── WasteDepositClean.tsx # Form setoran sampah
+├── hooks/               # Custom hooks
+│   ├── useOfflineSupabaseData.ts # Data management
+│   ├── useOfflineSync.ts # Sinkronisasi offline
+│   └── useSettings.ts   # Settings management
+├── lib/                 # Utilities
+│   ├── localDatabase.ts # Dexie database setup
+│   ├── supabase.ts      # Supabase client
+│   └── utils.ts         # Helper functions
+├── utils/               # Business logic
+│   ├── migrateToSupabase.ts # Migrasi data
+│   ├── offlineDataManager.ts # Offline data
+│   └── setupSupabase.ts # Setup database
+└── pages/               # Page components
+    ├── Index.tsx        # Landing page
+    └── NotFound.tsx     # 404 page
+```
 
-### Build Process
-- **Vite**: Fast development dan optimized production build
-- **Hot Reload**: Perubahan code langsung terlihat
-- **Tree Shaking**: Bundle size optimization
+## 💾 Data Management
 
-### Debugging
-- **React DevTools**: Debug component state
-- **Browser DevTools**: Inspect localStorage data
-- **Console Logging**: Debug data flow
+### Database Schema
+```typescript
+interface RT {
+  id: string;
+  name: string;
+  leader: string;
+  households: number;
+  address: string;
+  balance: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Transaction {
+  id: string;
+  rt_id: string;
+  rt_name: string;
+  type: 'deposit' | 'withdrawal';
+  weight?: number;
+  amount: number;
+  date: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+```
+
+### Storage Strategy
+- **Online**: Data disimpan di Supabase PostgreSQL
+- **Offline**: Data disimpan di IndexedDB menggunakan Dexie
+- **Sync**: Otomatis sinkronisasi saat kembali online
+- **Conflict Resolution**: Last-write-wins dengan timestamp
+
+## 🔄 Offline Functionality
+
+### Features
+- ✅ Baca data saat offline
+- ✅ Tambah/edit data saat offline
+- ✅ Queue untuk sync otomatis
+- ✅ Notifikasi status koneksi
+- ✅ Backup/restore data
+
+### Sync Strategy
+1. Deteksi perubahan koneksi
+2. Queue operasi saat offline
+3. Bulk sync saat kembali online
+4. Handle konflik dengan timestamp
+5. Notifikasi hasil sync
 
 ## 📱 PWA Features
 
+### Installation
+- Prompt install otomatis
+- Icon dan splash screen custom
+- Standalone mode
+- Push notifications ready
+
+### Offline Support
+- Service Worker dengan Workbox
+- Cache strategy untuk assets
+- Background sync
+- Offline page fallback
+
+## 🎨 UI/UX Features
+
 ### Responsive Design
-- **Mobile First**: Optimized untuk mobile
-- **Tablet Support**: Layout responsif tablet
-- **Desktop Compatible**: Berfungsi di desktop
+- Mobile-first approach
+- Tablet dan desktop support
+- Touch-friendly interface
+- Dark/light mode support
 
-### Offline Capability
-- **localStorage**: Data tersimpan lokal
-- **No Server Dependency**: Tidak perlu koneksi internet
-- **Instant Loading**: Data load langsung dari browser
+### Accessibility
+- Keyboard navigation
+- Screen reader support
+- High contrast mode
+- ARIA labels
 
-## 🔧 Maintenance & Troubleshooting
+## 📊 Analytics & Reports
 
-### Common Issues
+### Dashboard Metrics
+- Total RT aktif
+- Saldo keseluruhan
+- Transaksi hari ini
+- Top performing RT
 
-1. **Data Loss**
-   - **Cause**: Browser cache cleared
-   - **Solution**: Implementasi backup/restore feature
+### Report Features
+- Filter berdasarkan tanggal
+- Export data ke JSON
+- Print-friendly format
+- Real-time updates
 
-2. **Performance Issues**
-   - **Cause**: Large data di localStorage
-   - **Solution**: Data cleanup/pagination
+## 🔧 Scripts Available
 
-3. **Build Errors**
-   - **Cause**: TypeScript errors atau missing dependencies
-   - **Solution**: Check konsol dan fix errors
+```bash
+# Development
+npm run dev              # Start dev server
+npm run type-check       # TypeScript check
+npm run lint             # ESLint check
 
-### Data Backup
-```javascript
-// Export data
-const data = localStorage.getItem('bankSampahData');
-console.log(data); // Copy dan simpan
+# Build
+npm run build            # Production build
+npm run build:dev        # Development build
+npm run build:pwa        # Build with PWA icons
+npm run preview          # Preview build
 
-// Import data
-localStorage.setItem('bankSampahData', 'paste-data-here');
+# PWA
+npm run generate-icons   # Generate PWA icons
 ```
 
-### Performance Optimization
-- Regular data cleanup untuk menghapus transaksi lama
-- Implementasi pagination untuk data besar
-- Lazy loading untuk komponen berat
+## 🧪 Testing & Quality
 
-## 📈 Statistik & Analytics
+### Code Quality
+- TypeScript strict mode
+- ESLint dengan rules modern
+- Prettier code formatting
+- Husky pre-commit hooks
 
-### Real-time Metrics
-- Total RT aktif
-- Total saldo sistem
-- Transaksi hari ini (setoran + penarikan)
-- Average setoran per RT
+### Testing Strategy
+- Unit tests dengan Vitest
+- Component tests dengan Testing Library
+- E2E tests dengan Playwright
+- Manual testing checklist
 
-### Historical Data
-- Trend setoran bulanan
-- Top performing RT
-- Transaction volume analysis
-
-## 🔐 Data Security
+## 🔐 Security
 
 ### Client-side Security
-- **localStorage Encryption**: Bisa implementasi enkripsi data
-- **Input Validation**: Validasi semua input user
-- **XSS Protection**: React built-in XSS protection
+- Input validation dengan Zod
+- XSS protection built-in React
+- CSRF protection via Supabase
+- RLS (Row Level Security)
 
-### Best Practices
-- Regular data backup
-- Input sanitization
+### Data Privacy
+- Local data encryption option
+- GDPR compliance ready
+- Data export/delete features
+- Audit trail logging
+
+## 🚀 Deployment
+
+### Build Process
+```bash
+# Production build
+npm run build
+
+# Check build size
+npm run preview
+
+# Deploy to hosting
+# (Vercel, Netlify, etc.)
+```
+
+### Environment Setup
+- Development: Local dengan mock data
+- Staging: Supabase staging
+- Production: Supabase production
+
+## 📈 Performance
+
+### Optimization
+- Code splitting dengan Vite
+- Tree shaking otomatis
+- Image optimization
+- Bundle analyzer
+- Lazy loading components
+
+### Monitoring
+- Core Web Vitals tracking
 - Error boundary implementation
+- Performance metrics
+- User analytics
 
-## 🚀 Future Enhancements
+## 🔄 Migration Guide
 
-### Planned Features
-1. **Export to Excel**: Export laporan ke Excel
-2. **Print Reports**: Print-friendly laporan
-3. **Data Sync**: Sync data antar device
-4. **Push Notifications**: Reminder setoran
-5. **Advanced Analytics**: Chart dan graph
+### Dari localStorage ke Supabase
+```bash
+# Jalankan migrasi otomatis
+# Data localStorage akan dipindah ke Supabase
+# Backup otomatis dibuat
+```
 
-### Technical Improvements
-1. **Database Migration**: Upgrade ke IndexedDB
-2. **PWA Optimization**: Service worker implementation
-3. **Performance**: Virtual scrolling untuk data besar
-4. **Testing**: Unit dan integration tests
+### Update Dependencies
+```bash
+npm update
+npm audit fix
+```
 
-## 📞 Support & Contact
+## 🤝 Contributing
 
-### Development Team
-- **Project**: Bank Sampah RW 10 Desa Cidatar
-- **Tech Stack**: React + TypeScript + Vite
-- **Version**: 1.0.0
+### Development Workflow
+1. Fork repository
+2. Create feature branch
+3. Make changes
+4. Test thoroughly
+5. Submit pull request
+
+### Code Standards
+- TypeScript strict mode
+- Functional components
+- Custom hooks untuk logic
+- Consistent naming
+- Comment untuk complex logic
+
+## 📞 Support
+
+### Common Issues
+1. **PWA Install**: Clear browser cache
+2. **Sync Errors**: Check network connection
+3. **Data Loss**: Use backup/restore feature
+4. **Performance**: Clear IndexedDB data
 
 ### Resources
-- **Repository**: GitHub repository link
-- **Documentation**: File dokumentasi ini
-- **Issue Tracking**: GitHub Issues
+- 📚 [User Guide](docs/user-guide.md)
+- 🛠️ [Developer Guide](docs/developer-guide.md)
+- 🐛 [Issue Tracker](https://github.com/mohyasrul/KKN-banksampah/issues)
+- 💬 [Discussions](https://github.com/mohyasrul/KKN-banksampah/discussions)
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 👥 Team
+
+**KKN Bank Sampah Team**
+- Project Management: KKN Team
+- Development: React TypeScript Stack
+- Design: Mobile-first PWA
 
 ---
 
-*Dokumentasi ini mencakup semua aspek teknis dan fungsional aplikasi Bank Sampah RW 10. Update secara berkala sesuai perkembangan fitur.*
+*Aplikasi Bank Sampah RW 10 - Membantu pengelolaan sampah berkelanjutan di tingkat RT/RW dengan teknologi modern.*
+
+**Version**: 1.0.0  
+**Last Updated**: August 2025

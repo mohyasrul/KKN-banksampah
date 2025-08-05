@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface WastePrice {
@@ -40,11 +40,23 @@ export const useSettings = () => {
 
   // Load settings from localStorage and Supabase
   useEffect(() => {
-    loadSettings();
-    loadWastePrices();
-  }, []);
+    let mounted = true;
+    
+    const initializeSettings = async () => {
+      if (mounted) {
+        loadSettings();
+        await loadWastePrices();
+      }
+    };
 
-  const loadSettings = () => {
+    initializeSettings();
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Only run once on mount
+
+  const loadSettings = useCallback(() => {
     try {
       const saved = localStorage.getItem("bank_sampah_settings");
       if (saved) {
@@ -54,9 +66,9 @@ export const useSettings = () => {
     } catch (error) {
       console.error("Error loading settings:", error);
     }
-  };
+  }, []);
 
-  const loadWastePrices = async () => {
+  const loadWastePrices = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -94,9 +106,9 @@ export const useSettings = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const saveSettings = async () => {
+  const saveSettings = useCallback(async () => {
     try {
       // Save to localStorage
       localStorage.setItem("bank_sampah_settings", JSON.stringify(appSettings));
@@ -122,20 +134,20 @@ export const useSettings = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  };
+  }, [appSettings, wastePrices]);
 
-  const updateWastePrice = (id: string, newPrice: number) => {
+  const updateWastePrice = useCallback((id: string, newPrice: number) => {
     setWastePrices((prev) =>
       prev.map((item) => (item.id === id ? { ...item, price: newPrice } : item))
     );
-  };
+  }, []);
 
-  const updateAppSettings = (newSettings: Partial<AppSettings>) => {
+  const updateAppSettings = useCallback((newSettings: Partial<AppSettings>) => {
     setAppSettings((prev) => ({ ...prev, ...newSettings }));
-  };
+  }, []);
 
   // Backup data to JSON file
-  const backupData = async () => {
+  const backupData = useCallback(async () => {
     try {
       // Get all data from Supabase
       const [rtData, transactionsData, savingsData] = await Promise.all([
@@ -180,10 +192,10 @@ export const useSettings = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  };
+  }, [wastePrices, appSettings]);
 
   // Restore data from JSON file
-  const restoreData = (
+  const restoreData = useCallback((
     file: File
   ): Promise<{ success: boolean; error?: string }> => {
     return new Promise((resolve) => {
@@ -219,10 +231,10 @@ export const useSettings = () => {
       };
       reader.readAsText(file);
     });
-  };
+  }, []);
 
   // Reset all data
-  const resetData = async () => {
+  const resetData = useCallback(async () => {
     try {
       // Clear localStorage
       localStorage.removeItem("bank_sampah_settings");
@@ -245,10 +257,10 @@ export const useSettings = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  };
+  }, []);
 
-  // Get system stats
-  const getSystemStats = async () => {
+  // Get system stats - memoized to prevent recalculation
+  const getSystemStats = useCallback(async () => {
     try {
       const [rtCount, transactionCount] = await Promise.all([
         supabase.from("rt").select("id", { count: "exact" }),
@@ -279,10 +291,10 @@ export const useSettings = () => {
         status: "Error",
       };
     }
-  };
+  }, []);
 
   // Sync data between local and remote
-  const syncData = async () => {
+  const syncData = useCallback(async () => {
     try {
       // Reload waste prices from Supabase
       await loadWastePrices();
@@ -296,9 +308,10 @@ export const useSettings = () => {
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  };
+  }, [loadWastePrices]);
 
-  return {
+  // Memoize return value to prevent unnecessary re-renders
+  const returnValue = useMemo(() => ({
     // State
     wastePrices,
     appSettings,
@@ -315,5 +328,21 @@ export const useSettings = () => {
     getSystemStats,
     syncData,
     loadWastePrices,
-  };
+  }), [
+    wastePrices,
+    appSettings,
+    isLoading,
+    error,
+    updateWastePrice,
+    updateAppSettings,
+    saveSettings,
+    backupData,
+    restoreData,
+    resetData,
+    getSystemStats,
+    syncData,
+    loadWastePrices,
+  ]);
+
+  return returnValue;
 };

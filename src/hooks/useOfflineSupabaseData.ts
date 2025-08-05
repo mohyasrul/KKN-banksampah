@@ -35,17 +35,115 @@ export const useOfflineSupabaseData = () => {
     setError(null);
     
     try {
-      await Promise.all([
-        loadRTList(),
-        loadWasteTypes(),
-        loadWasteTransactions(),
-        loadSavingsTransactions()
-      ]);
+      // Check if we're online
+      const isOnline = navigator.onLine;
+      
+      if (!isOnline) {
+        console.log("Offline mode detected, loading from IndexedDB only");
+        // Load from IndexedDB only when offline
+        await Promise.all([
+          loadRTListOffline(),
+          loadWasteTypesOffline(),
+          loadWasteTransactionsOffline(),
+          loadSavingsTransactionsOffline()
+        ]);
+      } else {
+        // Try to load from online sources, fallback to offline
+        await Promise.all([
+          loadRTList(),
+          loadWasteTypes(),
+          loadWasteTransactions(),
+          loadSavingsTransactions()
+        ]);
+      }
     } catch (err) {
       console.error("Error loading initial data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      // If online loading fails, try offline
+      if (navigator.onLine) {
+        console.log("Online loading failed, trying offline fallback");
+        try {
+          await Promise.all([
+            loadRTListOffline(),
+            loadWasteTypesOffline(),
+            loadWasteTransactionsOffline(),
+            loadSavingsTransactionsOffline()
+          ]);
+        } catch (offlineErr) {
+          console.error("Offline fallback also failed:", offlineErr);
+          setError("Failed to load data. Please check your connection or try again later.");
+        }
+      } else {
+        setError("Offline mode: Some data may not be available.");
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Offline-specific loaders
+  const loadRTListOffline = async () => {
+    try {
+      const data = await offlineDataManager.getRTList();
+      setRTList(data);
+    } catch (err) {
+      console.error("Error loading RT list offline:", err);
+      // Set default data if no offline data exists
+      setRTList([]);
+    }
+  };
+
+  const loadWasteTypesOffline = async () => {
+    try {
+      const data = await offlineDataManager.getWasteTypes();
+      if (data.length === 0) {
+        // Set default waste types if none exist
+        const defaultWasteTypes = [
+          { id: 'plastik', name: 'Plastik', price_per_kg: 5000, unit: 'kg', description: 'Limbah plastik', is_active: true, created_at: new Date().toISOString() },
+          { id: 'kertas', name: 'Kertas', price_per_kg: 3000, unit: 'kg', description: 'Limbah kertas', is_active: true, created_at: new Date().toISOString() },
+          { id: 'logam', name: 'Logam', price_per_kg: 8000, unit: 'kg', description: 'Limbah logam', is_active: true, created_at: new Date().toISOString() },
+          { id: 'kaca', name: 'Kaca', price_per_kg: 2000, unit: 'kg', description: 'Limbah kaca', is_active: true, created_at: new Date().toISOString() },
+          { id: 'kardus', name: 'Kardus', price_per_kg: 2500, unit: 'kg', description: 'Limbah kardus', is_active: true, created_at: new Date().toISOString() },
+        ];
+        setWasteTypes(defaultWasteTypes);
+        // Default waste types will be available for offline use
+      } else {
+        setWasteTypes(data);
+      }
+    } catch (err) {
+      console.error("Error loading waste types offline:", err);
+      setWasteTypes([]);
+    }
+  };
+
+  const loadWasteTransactionsOffline = async () => {
+    try {
+      const data = await offlineDataManager.getWasteTransactions();
+      setTransactions(data.map(transaction => ({
+        ...transaction,
+        rt: rtList.find(r => r.id === transaction.rt_id) ? 
+          { nomor: rtList.find(r => r.id === transaction.rt_id)!.nomor, 
+            ketua_rt: rtList.find(r => r.id === transaction.rt_id)!.ketua_rt } : undefined,
+        waste_type: wasteTypes.find(wt => wt.id === transaction.waste_type_id) ? 
+          { name: wasteTypes.find(wt => wt.id === transaction.waste_type_id)!.name } : undefined
+      })));
+    } catch (err) {
+      console.error("Error loading waste transactions offline:", err);
+      setTransactions([]);
+    }
+  };
+
+  const loadSavingsTransactionsOffline = async () => {
+    try {
+      const data = await offlineDataManager.getSavingsTransactions();
+      setSavingsTransactions(data.map(transaction => ({
+        ...transaction,
+        rt: rtList.find(r => r.id === transaction.rt_id) ? 
+          { nomor: rtList.find(r => r.id === transaction.rt_id)!.nomor, 
+            ketua_rt: rtList.find(r => r.id === transaction.rt_id)!.ketua_rt } : undefined
+      })));
+    } catch (err) {
+      console.error("Error loading savings transactions offline:", err);
+      setSavingsTransactions([]);
     }
   };
 
